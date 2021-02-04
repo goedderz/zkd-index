@@ -1,0 +1,9 @@
+[submodule "vendor/rocksdb"]
+	path = vendor/rocksdb
+	url = git@github.com:facebook/rocksdb.git
+[submodule "vendor/velocypack"]
+	path = vendor/velocypack
+	url = git@github.com:arangodb/velocypack.git
+[submodule "vendor/immer"]
+	path = vendor/immer
+	url = git@github.com:arximboldi/immer.git
