@@ -29,13 +29,19 @@ add_library(with_asan INTERFACE)
 target_compile_options(with_asan INTERFACE "-fsanitize=address")
 target_link_libraries(with_asan INTERFACE asan)
 
+set(GTEST_PATH vendor/rocksdb/third-party/gtest-1.8.1/fused-src/gtest)
 
+add_library(my_gtest INTERFACE)
+target_link_libraries(my_gtest INTERFACE gtest)
+target_include_directories(my_gtest INTERFACE ${GTEST_PATH})
 
-add_library(zkd_tree library.cpp library.h)
-target_link_libraries(zkd_tree with_asan)
+add_library(zkd_tree src/library.cpp src/library.h)
+target_include_directories(zkd_tree INTERFACE src/)
+#target_link_libraries(zkd_tree with_asan)
 
-add_executable(zkd_tree_test main.cpp rocksdb-handle.cpp rocksdb-handle.h)
+add_executable(zkd_tree_test test.cpp src/rocksdb-handle.cpp src/rocksdb-handle.h tests/zkd_test.cpp)
 target_link_libraries(zkd_tree_test zkd_tree)
+target_link_libraries(zkd_tree_test my_gtest)
 
 target_link_libraries(zkd_tree_test my_rocksdb)
-target_link_libraries(zkd_tree_test with_asan)
+#target_link_libraries(zkd_tree_test with_asan)
