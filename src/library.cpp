@@ -126,6 +126,7 @@ fuckoff_cxx:
 
 auto compareWithBox(byte_string const &cur, byte_string const &min, byte_string const &max, std::size_t dimensions)
   -> std::vector<CompareResult> {
+  // TODO Don't crash with illegal dimensions
   assert(dimensions != 0);
   std::vector<CompareResult> result;
   result.resize(dimensions);

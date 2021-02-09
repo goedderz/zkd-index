@@ -11,6 +11,10 @@ std::byte operator"" _b(unsigned long long b) {
   return std::byte{(unsigned char) b};
 }
 
+// byte_string operator"" _bs(const char* p) {
+//   // TODO
+// }
+
 TEST(interleave, d0) {
   auto res = interleave({});
   ASSERT_EQ(byte_string{}, res);
@@ -150,6 +154,32 @@ TEST(compareBox, d2_x_less_y_greater) {
   EXPECT_EQ(res[1].saveMin, 3);
   EXPECT_EQ(res[1].saveMax, -1);
   EXPECT_EQ(res[1].outStep, 3);
+}
+
+TEST(compareBox, d3_x_less_y_greater_z_eq) {
+  auto d1 = std::make_pair<byte_string, byte_string>({0b100_b}, {0b1000_b});
+  auto d2 = std::make_pair<byte_string, byte_string>({0b10_b}, {0b110_b});
+  auto d3 = std::make_pair<byte_string, byte_string>({0b0_b}, {0b10_b});
+  auto p = std::array{byte_string{0b11_b}, byte_string{0b10000_b}, byte_string{0b10_b}};
+
+  auto min_v = interleave({d1.first, d2.first, d3.first});    // 00 00 00 00 00 10 01 00
+  auto max_v = interleave({d1.second, d2.second, d3.second});  // 00 00 00 00 10 01 01 00
+  auto v = interleave({p[0], p[1], p[2]});         // 00 00 00 01 00 00 10 10
+
+  auto res = compareWithBox(v, min_v, max_v, 3);
+
+  EXPECT_EQ(res[0].flag, -1);
+  EXPECT_EQ(res[0].saveMin, -1);
+  EXPECT_EQ(res[0].saveMax, 4);
+  EXPECT_EQ(res[0].outStep, 5);
+  EXPECT_EQ(res[1].flag, 1);
+  EXPECT_EQ(res[1].saveMin, 3);
+  EXPECT_EQ(res[1].saveMax, -1);
+  EXPECT_EQ(res[1].outStep, 3);
+  EXPECT_EQ(res[2].flag, 0);
+  EXPECT_EQ(res[2].saveMin, 3);
+  EXPECT_EQ(res[2].saveMax, -1);
+  EXPECT_EQ(res[2].outStep, -1);
 }
 
 
