@@ -70,6 +70,26 @@ TEST(transpose, d3_multi) {
   }
 }
 
+TEST(compareBox, d1_eq) {
+
+  auto d1 = std::make_pair(2_b, 6_b);   // (010, 110)
+  auto d2 = std::make_pair(3_b, 5_b); // (011, 101)
+
+  auto min_v = interleave({byte_string{d1.first}, byte_string{d2.first}});   // 00 11 01
+  auto max_v = interleave({byte_string{d1.second}, byte_string{d2.second}}); // 11 10 01
+
+  //ASSERT_TRUE(strcmp(min_v.data(), max_v.data()) < 0);
+
+  auto v = interleave({byte_string{3_b}, byte_string{3_b}}); // (011, 011) -- 00 11 11
+  auto res = compareWithBox(v, min_v, max_v, 2);
+
+  EXPECT_EQ(res[0].flag, 0);
+  EXPECT_EQ(res[1].flag, 0);
+
+  EXPECT_EQ(res[0].saveMin, 2);
+  EXPECT_EQ(res[0].saveMax, 0);
+}
+
 TEST(compareBox, d2_eq) {
 
   auto d1 = std::make_pair(5_b, 35_b);   // (00000101, 00100011)
@@ -83,13 +103,12 @@ TEST(compareBox, d2_eq) {
   auto v = interleave({byte_string{15_b}, byte_string{86_b}}); // (00001111, 01010110) // 0001000110111110
   auto res = compareWithBox(v, min_v, max_v, 2);
 
-  // 0001000001110011
-  // 0001000110111110
-  // 0001110101001011
+  // 0001000001110011 -- min (5, 77)
+  // 0001000110111110 -- cur (15, 86)
+  // 0001110101001011 -- max (35, 121)
 
   EXPECT_EQ(res[0].flag, 0);
   EXPECT_EQ(res[1].flag, 0);
-
 }
 
 TEST(compareBox, d2_less_0) {
@@ -197,3 +216,4 @@ TEST(rocksdb, cmp_slice) {
             << "left = " << left << ", right = " << right;
   }
 }
+

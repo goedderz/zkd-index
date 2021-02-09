@@ -4,6 +4,7 @@
 #include <cassert>
 #include <iostream>
 #include <optional>
+#include <cstddef>
 
 enum class Bit {
   ZERO = 0,
@@ -27,7 +28,7 @@ class BitReader {
       ++_current;
     }
 
-    auto flag = std::byte{1u} << (7 - _nibble);
+    auto flag = std::byte{1u} << (7u - _nibble);
     auto bit = (_value & flag) != std::byte{0} ? Bit::ONE : Bit::ZERO;
     _nibble += 1;
     return bit;
@@ -44,7 +45,7 @@ class BitWriter {
  public:
   void append(Bit bit) {
     if (bit == Bit::ONE) {
-      _value |= std::byte{1} << (7 - _nibble);
+      _value |= std::byte{1} << (7u - _nibble);
     }
     _nibble += 1;
     if (_nibble == 8) {
