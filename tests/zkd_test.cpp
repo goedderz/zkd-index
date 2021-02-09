@@ -89,6 +89,7 @@ TEST(compareBox, d2_eq) {
 
   EXPECT_EQ(res[0].flag, 0);
   EXPECT_EQ(res[1].flag, 0);
+  // TODO
 }
 
 TEST(compareBox, d2_eq2) {
@@ -109,24 +110,49 @@ TEST(compareBox, d2_eq2) {
   EXPECT_EQ(res[0].saveMax, 5);
 
   EXPECT_EQ(res[1].flag, 0);
+  // TODO
 }
 
-TEST(compareBox, d2_less_0) {
-
+TEST(compareBox, d2_less) {
   auto d1 = std::make_pair(5_b, 35_b);
   auto d2 = std::make_pair(77_b, 121_b);
+  auto p = std::make_pair(3_b, 86_b);
 
   auto min_v = interleave({byte_string{d1.first}, byte_string{d2.first}});
   auto max_v = interleave({byte_string{d1.second}, byte_string{d2.second}});
 
   //ASSERT_TRUE(strcmp(min_v.data(), max_v.data()) < 0);
 
-  auto v = interleave({byte_string{3_b}, byte_string{86_b}});
+  auto v = interleave({byte_string{p.first}, byte_string{p.second}});
   auto res = compareWithBox(v, min_v, max_v, 2);
 
   EXPECT_EQ(res[0].flag, -1);
   EXPECT_EQ(res[1].flag, 0);
+  // TODO
 }
+
+TEST(compareBox, d2_x_less_y_greater) {
+  auto d1 = std::make_pair(0b100_b, 0b1000_b);
+  auto d2 = std::make_pair(0b10_b, 0b110_b);
+  auto p = std::make_pair(0b11_b, 0b10000_b);
+
+  auto min_v = interleave({byte_string{d1.first}, byte_string{d2.first}});    // 00 00 00 00 00 10 01 00
+  auto max_v = interleave({byte_string{d1.second}, byte_string{d2.second}});  // 00 00 00 00 10 01 01 00
+  auto v = interleave({byte_string{p.first}, byte_string{p.second}});         // 00 00 00 01 00 00 10 10
+
+  auto res = compareWithBox(v, min_v, max_v, 2);
+
+  EXPECT_EQ(res[0].flag, -1);
+  EXPECT_EQ(res[0].saveMin, -1);
+  EXPECT_EQ(res[0].saveMax, 4);
+  EXPECT_EQ(res[0].outStep, 5);
+  EXPECT_EQ(res[1].flag, 1);
+  EXPECT_EQ(res[1].saveMin, 3);
+  EXPECT_EQ(res[1].saveMax, -1);
+  EXPECT_EQ(res[1].outStep, 3);
+}
+
+
 #if 0
 // class RocksdbTest : public testing::Test {
 //  public:
