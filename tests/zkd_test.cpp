@@ -70,26 +70,6 @@ TEST(transpose, d3_multi) {
   }
 }
 
-TEST(compareBox, d1_eq) {
-
-  auto d1 = std::make_pair(2_b, 6_b);   // (010, 110)
-  auto d2 = std::make_pair(3_b, 5_b); // (011, 101)
-
-  auto min_v = interleave({byte_string{d1.first}, byte_string{d2.first}});   // 00 11 01
-  auto max_v = interleave({byte_string{d1.second}, byte_string{d2.second}}); // 11 10 01
-
-  //ASSERT_TRUE(strcmp(min_v.data(), max_v.data()) < 0);
-
-  auto v = interleave({byte_string{3_b}, byte_string{3_b}}); // (011, 011) -- 00 11 11
-  auto res = compareWithBox(v, min_v, max_v, 2);
-
-  EXPECT_EQ(res[0].flag, 0);
-  EXPECT_EQ(res[1].flag, 0);
-
-  EXPECT_EQ(res[0].saveMin, 2);
-  EXPECT_EQ(res[0].saveMax, 0);
-}
-
 TEST(compareBox, d2_eq) {
 
   auto d1 = std::make_pair(5_b, 35_b);   // (00000101, 00100011)
@@ -108,6 +88,26 @@ TEST(compareBox, d2_eq) {
   // 0001110101001011 -- max (35, 121)
 
   EXPECT_EQ(res[0].flag, 0);
+  EXPECT_EQ(res[1].flag, 0);
+}
+
+TEST(compareBox, d2_eq2) {
+
+  auto d1 = std::make_pair(2_b, 6_b); // (00000010, 00000110)
+  auto d2 = std::make_pair(3_b, 5_b); // (00000011, 00000101)
+
+  auto min_v = interleave({byte_string{d1.first}, byte_string{d2.first}});   // 00 00 00 00 00 00 11 01
+  auto max_v = interleave({byte_string{d1.second}, byte_string{d2.second}}); // 00 00 00 00 00 11 10 01
+
+  // ASSERT_TRUE(strcmp(min_v.data(), max_v.data()) < 0);
+
+  auto v = interleave({byte_string{3_b}, byte_string{3_b}}); // (00000011, 00000011) -- 00 00 00 00 00 00 11 11
+  auto res = compareWithBox(v, min_v, max_v, 2);
+
+  EXPECT_EQ(res[0].flag, 0);
+  EXPECT_EQ(res[0].saveMin, 7);
+  EXPECT_EQ(res[0].saveMax, 5);
+
   EXPECT_EQ(res[1].flag, 0);
 }
 

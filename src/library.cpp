@@ -154,10 +154,7 @@ auto compareWithBox(byte_string const &cur, byte_string const &min, byte_string 
         result[dim].flag = -1;
       } else if (cur_bit == Bit::ONE && min_bit == Bit::ZERO) {
         result[dim].isLargerThanMin = true;
-      } else {
-        if (result[dim].saveMin == unsigned(-1)) {
-          result[dim].saveMin = step;
-        }
+        result[dim].saveMin = step;
       }
     }
 
@@ -167,10 +164,7 @@ auto compareWithBox(byte_string const &cur, byte_string const &min, byte_string 
         result[dim].flag = 1;
       } else if (cur_bit == Bit::ZERO && max_bit == Bit::ONE) {
         result[dim].isLowerThanMax = true;
-      } else {
-        if (result[dim].saveMax == unsigned(-1)) {
-          result[dim].saveMax = step;
-        }
+        result[dim].saveMax = step;
       }
     }
   }
