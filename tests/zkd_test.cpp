@@ -7,9 +7,6 @@
 #include "library.h"
 #include "rocksdb-handle.h"
 
-std::byte operator"" _b(unsigned long long b) {
-  return std::byte{(unsigned char) b};
-}
 
 TEST(interleave, d0) {
   auto res = interleave({});
@@ -173,19 +170,7 @@ auto viewFromSlice(rocksdb::Slice slice) -> byte_string_view {
   return byte_string_view{reinterpret_cast<std::byte const *>(slice.data()), slice.size()};
 }
 
-std::ostream& operator<<(std::ostream& ostream, byte_string const& string) {
-  ostream << "[";
-  bool first = true;
-  for (auto const& it : string) {
-    if (!first) {
-      ostream << " ";
-    }
-    first = false;
-    ostream << std::hex << std::setfill('0') << std::setw(2) << std::to_integer<unsigned>(it);
-  }
-  ostream << "]";
-  return ostream;
-}
+
 
 TEST(rocksdb, cmp_slice) {
   enum class Cmp : int {

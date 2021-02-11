@@ -1,10 +1,13 @@
 #include "library.h"
 
+
+#include <iostream>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <optional>
 #include <cstddef>
+#include <iomanip>
 
 enum class Bit {
   ZERO = 0,
@@ -176,4 +179,48 @@ auto compareWithBox(byte_string const &cur, byte_string const &min, byte_string 
   }
 
   return result;
+}
+
+template<typename T>
+auto to_byte_string_fixed_length(T v) -> byte_string {
+  byte_string result;
+  static_assert(std::is_integral_v<T>);
+  if constexpr (std::is_unsigned_v<T>) {
+    result.reserve(sizeof(T));
+    for (size_t i = 0; i < sizeof(T); i++) {
+      uint8_t b = 0xff & (v >> (56 - 8 * i));
+      result.push_back(std::byte{b});
+    }
+  } else {
+    // we have to add a <positive?> byte
+    result.reserve(sizeof(T) + 1);
+    if (v < 0) {
+      result.push_back(0_b);
+    } else {
+      result.push_back(0xff_b);
+    }
+    for (size_t i = 0; i < sizeof(T); i++) {
+      uint8_t b = 0xff & (v >> (56 - 8 * i));
+      result.push_back(std::byte{b});
+    }
+  }
+  return result;
+}
+
+template auto to_byte_string_fixed_length<uint64_t >(uint64_t) -> byte_string;
+template auto to_byte_string_fixed_length<int64_t>(int64_t) -> byte_string;
+
+
+std::ostream& operator<<(std::ostream& ostream, byte_string const& string) {
+  ostream << "[";
+  bool first = true;
+  for (auto const& it : string) {
+    if (!first) {
+      ostream << " ";
+    }
+    first = false;
+    ostream << std::hex << std::setfill('0') << std::setw(2) << std::to_integer<unsigned>(it);
+  }
+  ostream << "]";
+  return ostream;
 }
