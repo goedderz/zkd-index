@@ -39,7 +39,7 @@ add_library(zkd_tree src/library.cpp src/library.h)
 target_include_directories(zkd_tree INTERFACE src/)
 #target_link_libraries(zkd_tree with_asan)
 
-add_executable(zkd_tree_test test.cpp src/rocksdb-handle.cpp src/rocksdb-handle.h tests/zkd_test.cpp tests/conversion.cpp)
+add_executable(zkd_tree_test src/rocksdb-handle.cpp src/rocksdb-handle.h tests/zkd_test.cpp tests/conversion.cpp tests/main.cpp)
 target_link_libraries(zkd_tree_test zkd_tree)
 target_link_libraries(zkd_tree_test my_gtest)
 
