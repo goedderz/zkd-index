@@ -18,11 +18,9 @@ auto transpose(byte_string const& bs, std::size_t dimensions) -> std::vector<byt
 
 struct CompareResult {
   signed flag = 0;
-  bool isLargerThanMin = false;
-  bool isLowerThanMax = false;
-  unsigned outStep = 0;
-  unsigned saveMin = unsigned(-1);
-  unsigned saveMax = unsigned(-1);
+  unsigned outStep = std::numeric_limits<unsigned>::max();
+  unsigned saveMin = std::numeric_limits<unsigned>::max();
+  unsigned saveMax = std::numeric_limits<unsigned>::max();
 };
 
 auto compareWithBox(byte_string const& cur, byte_string const& min, byte_string const& max, std::size_t dimensions)

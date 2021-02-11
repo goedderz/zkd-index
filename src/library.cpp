@@ -129,6 +129,7 @@ fuckoff_cxx:
 
 auto compareWithBox(byte_string const &cur, byte_string const &min, byte_string const &max, std::size_t dimensions)
   -> std::vector<CompareResult> {
+  // TODO Don't crash with illegal dimensions
   assert(dimensions != 0);
   std::vector<CompareResult> result;
   result.resize(dimensions);
@@ -138,6 +139,11 @@ auto compareWithBox(byte_string const &cur, byte_string const &min, byte_string 
   BitReader cur_reader(cur.cbegin(), cur.cend());
   BitReader min_reader(min.cbegin(), min.cend());
   BitReader max_reader(max.cbegin(), max.cend());
+
+  auto isLargerThanMin = std::vector<bool>{};
+  auto isLowerThanMax = std::vector<bool>{};
+  isLargerThanMin.resize(dimensions);
+  isLowerThanMax.resize(dimensions);
 
   for (std::size_t i = 0; i < 8 * max_size; i++) {
     unsigned step = i / dimensions;
@@ -151,29 +157,23 @@ auto compareWithBox(byte_string const &cur, byte_string const &min, byte_string 
       continue;
     }
 
-    if (!result[dim].isLargerThanMin) {
+    if (!isLargerThanMin[dim]) {
       if (cur_bit == Bit::ZERO && min_bit == Bit::ONE) {
         result[dim].outStep = step;
         result[dim].flag = -1;
       } else if (cur_bit == Bit::ONE && min_bit == Bit::ZERO) {
-        result[dim].isLargerThanMin = true;
-      } else {
-        if (result[dim].saveMin == unsigned(-1)) {
-          result[dim].saveMin = step;
-        }
+        isLargerThanMin[dim] = true;
+        result[dim].saveMin = step;
       }
     }
 
-    if (!result[dim].isLowerThanMax) {
+    if (!isLowerThanMax[dim]) {
       if (cur_bit == Bit::ONE && max_bit == Bit::ZERO) {
         result[dim].outStep = step;
         result[dim].flag = 1;
       } else if (cur_bit == Bit::ZERO && max_bit == Bit::ONE) {
-        result[dim].isLowerThanMax = true;
-      } else {
-        if (result[dim].saveMax == unsigned(-1)) {
-          result[dim].saveMax = step;
-        }
+        isLowerThanMax[dim] = true;
+        result[dim].saveMax = step;
       }
     }
   }
