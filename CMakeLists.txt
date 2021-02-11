@@ -36,6 +36,7 @@ target_link_libraries(my_gtest INTERFACE gtest)
 target_include_directories(my_gtest INTERFACE ${GTEST_PATH})
 
 add_library(zkd_tree src/library.cpp src/library.h)
+target_precompile_headers(zkd_tree PUBLIC src/library.h)
 target_include_directories(zkd_tree INTERFACE src/)
 #target_link_libraries(zkd_tree with_asan)
 

@@ -159,9 +159,9 @@ TEST(compareBox, d3_x_less_y_greater_z_eq) {
   auto d3 = std::make_pair<byte_string, byte_string>({0b0_b}, {0b10_b});
   auto p = std::array{byte_string{0b11_b}, byte_string{0b10000_b}, byte_string{0b10_b}};
 
-  auto min_v = interleave({d1.first, d2.first, d3.first});    // 00 00 00 00 00 10 01 00
-  auto max_v = interleave({d1.second, d2.second, d3.second});  // 00 00 00 00 10 01 01 00
-  auto v = interleave({p[0], p[1], p[2]});         // 00 00 00 01 00 00 10 10
+  auto min_v = interleave({d1.first, d2.first, d3.first});     // 000 000 000 000 000 100 010 000
+  auto max_v = interleave({d1.second, d2.second, d3.second});  // 000 000 000 000 100 010 011 000
+  auto v = interleave({p[0], p[1], p[2]});                     // 000 000 000 010 000 000 101 100
 
   auto res = compareWithBox(v, min_v, max_v, 3);
 
@@ -174,7 +174,7 @@ TEST(compareBox, d3_x_less_y_greater_z_eq) {
   EXPECT_EQ(res[1].saveMax, -1);
   EXPECT_EQ(res[1].outStep, 3);
   EXPECT_EQ(res[2].flag, 0);
-  EXPECT_EQ(res[2].saveMin, 3);
+  EXPECT_EQ(res[2].saveMin, 6);
   EXPECT_EQ(res[2].saveMax, -1);
   EXPECT_EQ(res[2].outStep, -1);
 }
