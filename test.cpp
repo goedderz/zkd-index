@@ -1,30 +1,33 @@
 #include <cstdlib>
 #include <iostream>
+#include <string>
 
 #include "src/library.h"
 #include "src/rocksdb-handle.h"
 
-#include <gtest.h>
+
+
+using namespace std::string_view_literals;
 
 int main(int argc, char *argv[]) {
-  ::testing::InitGoogleTest(&argc, argv);
 
-  return RUN_ALL_TESTS();
-
-    /*
-
-
-  if (argc != 2) {
-    std::cerr << "bad parameter, expecting a single path" << std::endl;
+  if (argc != 3) {
+    std::cerr << "bad parameter, expecting" << argv[0] << " path " << "(fill|find)" << std::endl;
     return EXIT_FAILURE;
   }
 
   auto db = OpenRocksDB(argv[1]);
 
-  db->db->Put(rocksdb::WriteOptions(), "foobar", "baz");
 
-  auto value = std::string{};
-  auto res = db->db->Get(rocksdb::ReadOptions(), "foobar", &value);
 
-  std::cout << value << std::endl;*/
+  if (argv[2] == "fill"sv) {
+
+  } else if(argv[2] == "find"sv) {
+
+  } else {
+    std::cerr << "invalid verb: " << argv[2] << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  return EXIT_SUCCESS;
 }
