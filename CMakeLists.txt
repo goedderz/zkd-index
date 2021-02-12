@@ -47,6 +47,6 @@ target_link_libraries(zkd_tree_test my_gtest)
 target_link_libraries(zkd_tree_test my_rocksdb)
 #target_link_libraries(zkd_tree_test with_asan)
 
-add_executable(zkd_tree_tool test.cpp)
+add_executable(zkd_tree_tool test.cpp src/rocksdb-handle.cpp src/rocksdb-handle.h)
 target_link_libraries(zkd_tree_tool zkd_tree)
 target_link_libraries(zkd_tree_tool my_rocksdb)

@@ -78,6 +78,56 @@ class BitWriter {
 };
 
 
+struct RandomBitReader {
+  RandomBitReader(byte_string const& ref) : ref(ref) {}
+
+  auto getBit(unsigned index) -> Bit {
+    auto byte = index / 8;
+    auto nibble = index % 8;
+
+    if (byte >= ref.size()) {
+      return Bit::ZERO;
+    }
+
+    auto b = ref[byte] & (1_b << (7 - nibble));
+    return b != 0_b ? Bit::ONE : Bit::ZERO;
+  }
+
+ private:
+  byte_string const& ref;
+};
+
+struct RandomBitManipulator {
+  RandomBitManipulator(byte_string& ref) : ref(ref) {}
+
+  auto getBit(unsigned index) -> Bit {
+    auto byte = index / 8;
+    auto nibble = index % 8;
+
+    if (byte >= ref.size()) {
+      return Bit::ZERO;
+    }
+
+    auto b = ref[byte] & (1_b << (7 - nibble));
+    return b != 0_b ? Bit::ONE : Bit::ZERO;
+  }
+
+  auto setBit(unsigned index, Bit value) -> void {
+    auto byte = index / 8;
+    auto nibble = index % 8;
+
+    if (byte >= ref.size()) {
+      ref.resize(byte+1);
+    }
+    auto bit = 1_b << (7 - nibble);
+    ref[byte] = (ref[byte] & ~bit) | (value == Bit::ONE ? bit : 0_b);
+  }
+
+ private:
+  byte_string& ref;
+};
+
+
 auto interleave(std::vector<byte_string> const &vec) -> byte_string {
   std::size_t max_size = 0;
   std::vector<BitReader> reader;
@@ -175,6 +225,67 @@ auto compareWithBox(byte_string const &cur, byte_string const &min, byte_string 
         isLowerThanMax[dim] = true;
         result[dim].saveMax = step;
       }
+    }
+  }
+
+  return result;
+}
+
+auto getNextZValue(byte_string const &cur, byte_string const &min, byte_string const &max, std::vector<CompareResult> &cmpResult)
+  -> std::optional<byte_string> {
+
+  auto result = cur;
+
+  auto const dims = cmpResult.size();
+
+  auto minOutstepIter = std::min_element(cmpResult.begin(), cmpResult.end(), [&](auto const &a, auto const &b) {
+    if (a.flag == 0) {
+      return false;
+    }
+    if (b.flag == 0) {
+      return true;
+    }
+    return a.outStep < b.outStep;
+  });
+  assert(minOutstepIter->flag != 0);
+  auto const d = std::distance(cmpResult.begin(), minOutstepIter);
+
+  RandomBitReader nisp(cur);
+
+  std::size_t changeBP = dims * minOutstepIter->outStep + d;;
+  if (minOutstepIter->flag > 0)  {
+    while (changeBP != 0) {
+      --changeBP;
+      if (nisp.getBit(changeBP) == Bit::ZERO) {
+        auto dim = changeBP % dims;
+        auto step = changeBP / dims;
+        if (cmpResult[dim].saveMax <= step) {
+          cmpResult[dim].saveMin = step;
+          cmpResult[dim].flag = 0;
+          goto update_dims;
+        }
+      }
+
+    }
+
+    return std::nullopt;
+  }
+
+update_dims:
+  // TODO implement
+  assert(false);
+  for (unsigned dim = 0; dim < dims; dim++) {
+    auto& cmpRes = cmpResult[dim];
+    if (cmpRes.flag >= 0) {
+      auto bp = dims * cmpRes.saveMin + dim;
+      if(changeBP > bp) {
+        // “set all bits of dim with bit positions > changeBP to 0”
+      }else {
+        // “set all bits of dim with bit positions >  changeBP  to  the  minimum  of  the  query  box  in  this dim”
+      }
+    } else {
+      // load the minimum for that dimension
+
     }
   }
 
