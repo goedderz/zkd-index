@@ -325,11 +325,35 @@ TEST(rocksdb, cmp_slice) {
     EXPECT_EQ(expected == Cmp::LT, cmp->Compare(sliceFromString(left), sliceFromString(right)) < 0)
       << "left = " << left << ", right = " << right;
     EXPECT_EQ(expected == Cmp::EQ, cmp->Compare(sliceFromString(left), sliceFromString(right)) == 0)
-            << "left = " << left << ", right = " << right;
+      << "left = " << left << ", right = " << right;
     EXPECT_EQ(expected == Cmp::EQ, cmp->Equal(sliceFromString(left), sliceFromString(right)))
-            << "left = " << left << ", right = " << right;
+      << "left = " << left << ", right = " << right;
     EXPECT_EQ(expected == Cmp::GT, cmp->Compare(sliceFromString(left), sliceFromString(right)) > 0)
-            << "left = " << left << ", right = " << right;
+      << "left = " << left << ", right = " << right;
   }
 }
 
+TEST(getNextZValue, test1) {
+  // lower point of the box: (2, 2)
+  auto const pMin = interleave({"010"_bs, "010"_bs});
+  // upper point of the box: (6, 5)
+  auto const pMax = interleave(std::vector{"110"_bs, "101"_bs});
+
+  // z-curve inside the box goes through the following points.
+  // the value after -/> is outside the box. The next line continues with the next point
+  // on the curve inside the box.
+  // (2, 2) -> (3, 2) -> (2, 3) -> (3, 3) -/> (4, 0)
+  // (4, 2) -> (4, 3) -> (5, 2) -> (5, 3) -/> (6, 2)
+  // (2, 4) -> (3, 4) -/> (2, 5)
+  // (4, 4) -> (5, 4) -/> (4, 5)
+
+  auto cur = interleave({"0"_bs, "0"_bs});
+  auto cmpResult = compareWithBox(cur, pMin, pMax, 2);
+  auto result = getNextZValue(cur, pMin, pMax, cmpResult);
+  ASSERT_TRUE(result.has_value());
+  // expect (2, 2)
+  EXPECT_EQ(interleave({"10"_bs, "10"_bs}), result.value());
+  // TODO check cmpResult?
+
+  //getNextZValue();
+}
