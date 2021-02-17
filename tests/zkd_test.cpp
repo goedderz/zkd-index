@@ -7,10 +7,85 @@
 #include "library.h"
 #include "rocksdb-handle.h"
 
+byte_string operator"" _bs(const char *const str, std::size_t len) {
+  using namespace std::string_literals;
 
-// byte_string operator"" _bs(const char* p) {
-//   // TODO
-// }
+  std::string normalizedInput{};
+  normalizedInput.reserve(len);
+  for (char const *p = str; *p != '\0'; ++p) {
+    switch (*p) {
+      case '0':
+      case '1':
+        normalizedInput += *p;
+        break;
+      case ' ':
+      case '\'':
+        // skip whitespace and single quotes
+        break;
+      default:
+        throw std::invalid_argument{"Unexpected character "s + *p + " in byte string: " + str};
+    }
+  }
+
+  if (normalizedInput.empty()) {
+    throw std::invalid_argument{"Empty byte string"};
+  }
+
+  auto result = byte_string{};
+
+  // if the input isn't divisible by 8, calculate the offset in the first byte
+  auto bitIdx = (8 - normalizedInput.size() % 8) % 8;
+
+  char const *p = normalizedInput.c_str();
+  for (; *p != '\0'; bitIdx = 0) {
+    result += std::byte{0};
+    for (; *p != '\0' && bitIdx < 8; ++bitIdx) {
+      switch (*p) {
+        case '0':
+          break;
+        case '1': {
+          auto const bitPos = 7 - bitIdx;
+          result.back() |= (std::byte{1} << bitPos);
+          break;
+        }
+        default:
+          throw std::invalid_argument{"Unexpected character "s + *p + " in byte string: " + str};
+      }
+
+      ++p;
+      // skip whitespace and single quotes
+      while (*p == ' ' || *p == '\'') {
+        ++p;
+      }
+    }
+  }
+
+  return result;
+}
+
+TEST(byteStringLiteral, bs) {
+  EXPECT_THROW(""_bs, std::invalid_argument);
+  EXPECT_THROW(" "_bs, std::invalid_argument);
+  EXPECT_THROW("'"_bs, std::invalid_argument);
+  EXPECT_THROW("2"_bs, std::invalid_argument);
+  EXPECT_THROW("a"_bs, std::invalid_argument);
+  EXPECT_THROW("\0"_bs, std::invalid_argument);
+  EXPECT_THROW("02"_bs, std::invalid_argument);
+  EXPECT_THROW("12"_bs, std::invalid_argument);
+  EXPECT_THROW("0 2"_bs, std::invalid_argument);
+  EXPECT_THROW("1 2"_bs, std::invalid_argument);
+
+  EXPECT_EQ(byte_string{std::byte{0}}, "0"_bs);
+  EXPECT_EQ(byte_string{std::byte{1}}, "1"_bs);
+  EXPECT_EQ(byte_string{std::byte{0}}, "00000000"_bs);
+  EXPECT_EQ((byte_string{std::byte{0}, std::byte{0}}), "00000000 0"_bs);
+  EXPECT_EQ((byte_string{std::byte{0}, std::byte{1}}), "0 00000001"_bs);
+  EXPECT_EQ((byte_string{std::byte{0}, std::byte{2}}), "0 00000010"_bs);
+  EXPECT_EQ((byte_string{std::byte{1}, std::byte{0}}), "1 00000000"_bs);
+  EXPECT_EQ((byte_string{std::byte{42}, std::byte{42}}), "101010 00101010"_bs);
+  EXPECT_EQ((byte_string{std::byte{42}, std::byte{42}}), "00101010 00101010"_bs);
+  EXPECT_EQ((byte_string{std::byte{0}, std::byte{42}, std::byte{42}}), "0 00101010 00101010"_bs);
+}
 
 TEST(interleave, d0) {
   auto res = interleave({});
