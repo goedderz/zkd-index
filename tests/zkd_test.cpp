@@ -333,13 +333,31 @@ TEST(rocksdb, cmp_slice) {
   }
 }
 
-TEST(getNextZValue, test1) {
+TEST(getNextZValue, testFigure41) {
   // lower point of the box: (2, 2)
   auto const pMin = interleave({"010"_bs, "010"_bs});
   // upper point of the box: (6, 5)
   auto const pMax = interleave(std::vector{"110"_bs, "101"_bs});
 
-  // z-curve inside the box goes through the following points.
+  auto test = [&pMin, &pMax](std::vector<byte_string> const &inputCoords, std::optional<std::vector<byte_string>> const &expectedCoords) {
+    auto const input = interleave(inputCoords);
+    auto const expected = std::invoke([&]() -> std::optional<byte_string> {
+      if (expectedCoords.has_value()) {
+        return interleave(expectedCoords.value());
+      } else {
+        return std::nullopt;
+      }
+    });
+    auto cmpResult = compareWithBox(input, pMin, pMax, 2);
+    // input should be outside the box:
+    ASSERT_TRUE(std::any_of(cmpResult.begin(), cmpResult.end(),
+                            [](auto const &it) { return it.flag != 0; }));
+    auto result = getNextZValue(input, pMin, pMax, cmpResult);
+    EXPECT_EQ(expected, result);
+    // TODO should cmpResult be checked?
+  };
+
+  // z-curve inside the box [ (2, 2); (6, 5) ] goes through the following points.
   // the value after -/> is outside the box. The next line continues with the next point
   // on the curve inside the box.
   // (2, 2) -> (3, 2) -> (2, 3) -> (3, 3) -/> (4, 0)
@@ -347,13 +365,9 @@ TEST(getNextZValue, test1) {
   // (2, 4) -> (3, 4) -/> (2, 5)
   // (4, 4) -> (5, 4) -/> (4, 5)
 
-  auto cur = interleave({"0"_bs, "0"_bs});
-  auto cmpResult = compareWithBox(cur, pMin, pMax, 2);
-  auto result = getNextZValue(cur, pMin, pMax, cmpResult);
-  ASSERT_TRUE(result.has_value());
-  // expect (2, 2)
-  EXPECT_EQ(interleave({"10"_bs, "10"_bs}), result.value());
-  // TODO check cmpResult?
-
-  //getNextZValue();
+  test({"0"_bs, "0"_bs}, {{"10"_bs, "10"_bs}});
+  test({"100"_bs, "0"_bs}, {{"100"_bs, "10"_bs}});
+  test({"110"_bs, "10"_bs}, {{"10"_bs, "100"_bs}});
+  test({"10"_bs, "101"_bs}, {{"100"_bs, "100"_bs}});
+  test({"100"_bs, "101"_bs}, std::nullopt);
 }
