@@ -370,4 +370,21 @@ TEST(getNextZValue, testFigure41) {
   test({"110"_bs, "10"_bs}, {{"10"_bs, "100"_bs}});
   test({"10"_bs, "101"_bs}, {{"100"_bs, "100"_bs}});
   test({"100"_bs, "101"_bs}, std::nullopt);
+
+  for (uint8_t xi = 0; xi < 8; ++xi) {
+    for (uint8_t yi = 0; yi < 8; ++yi) {
+      bool const inBox = 2 <= xi && xi < 6 && 2 <= yi && yi < 5;
+      auto const input = interleave({{std::byte{xi}}, {std::byte{yi}}});
+
+      auto cmpResult = compareWithBox(input, pMin, pMax, 2);
+      // assert that compareWithBox agrees with our `inBox` bool
+      ASSERT_TRUE(inBox == std::all_of(cmpResult.begin(), cmpResult.end(),
+                                       [](auto const &it) { return it.flag == 0; }));
+      if (!inBox) {
+        auto result = getNextZValue(input, pMin, pMax, cmpResult);
+        EXPECT_TRUE(result.has_value());
+        // TODO add a check for the actual value
+      }
+    }
+  }
 }
