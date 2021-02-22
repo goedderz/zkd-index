@@ -8,6 +8,7 @@ set(WITH_TOOLS OFF CACHE BOOL "disable tools")
 set(WITH_CORE_TOOLS OFF CACHE BOOL "disable core tools")
 set(WITH_TESTS OFF CACHE BOOL "disable tests")
 set(WITH_GFLAGS 0 CACHE BOOL "")
+set(FAIL_ON_WARNINGS 0 CACHE BOOL "")
 add_subdirectory(vendor/rocksdb)
 
 add_library(my_rocksdb INTERFACE)

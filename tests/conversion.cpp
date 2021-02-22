@@ -45,13 +45,13 @@ static_assert(sizeof(long long) == sizeof(long));
 
 TEST(byte_string_conversion, int64_compare) {
   auto tests = std::array{
-    std::pair{12l, 453l},
-    std::pair{-12l, 453l},
-    std::pair{-1458792l, 453l},
-    std::pair{17819835131l, -894564l},
-    std::pair{-12l, -8l},
-    std::pair{-5646872l, -5985646871l},
-    std::pair{-5985646871l, -5985646871l},
+    std::pair{12ll, 453ll},
+    std::pair{-12ll, 453ll},
+    std::pair{-1458792ll, 453ll},
+    std::pair{17819835131ll, -894564ll},
+    std::pair{-12ll, -8ll},
+    std::pair{-5646872ll, -5985646871ll},
+    std::pair{-5985646871ll, -5985646871ll},
   };
 
   for (auto &&[a, b] : tests) {

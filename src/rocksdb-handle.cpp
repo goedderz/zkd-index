@@ -1,7 +1,7 @@
 #include "rocksdb-handle.h"
 
-std::shared_ptr<RocksDBHandle> OpenRocksDB(std::string const& dbname) {
-  rocksdb::DB* ptr;
+std::shared_ptr<RocksDBHandle> OpenRocksDB(std::string const &dbname) {
+  rocksdb::DB *ptr;
   rocksdb::DBOptions opts;
   opts.create_if_missing = true;
   opts.create_missing_column_families = true;
@@ -11,7 +11,7 @@ std::shared_ptr<RocksDBHandle> OpenRocksDB(std::string const& dbname) {
   std::vector<rocksdb::ColumnFamilyDescriptor> families;
   families.emplace_back(rocksdb::kDefaultColumnFamilyName, defaultFamily);
 
-  std::vector<rocksdb::ColumnFamilyHandle*> handles;
+  std::vector<rocksdb::ColumnFamilyHandle *> handles;
 
   auto status = rocksdb::DB::Open(opts, dbname, families, &handles, &ptr);
   if (!status.ok()) {

@@ -8,12 +8,12 @@
 #include <optional>
 
 
-byte_string operator"" _bs(const char *const str, std::size_t len) {
+byte_string operator"" _bs(const char* const str, std::size_t len) {
   using namespace std::string_literals;
 
   std::string normalizedInput{};
   normalizedInput.reserve(len);
-  for (char const *p = str; *p != '\0'; ++p) {
+  for (char const* p = str; *p != '\0'; ++p) {
     switch (*p) {
       case '0':
       case '1':
@@ -37,7 +37,7 @@ byte_string operator"" _bs(const char *const str, std::size_t len) {
   // if the input isn't divisible by 8, calculate the offset in the first byte
   auto bitIdx = (8 - normalizedInput.size() % 8) % 8;
 
-  char const *p = normalizedInput.c_str();
+  char const* p = normalizedInput.c_str();
   for (; *p != '\0'; bitIdx = 0) {
     result += std::byte{0};
     for (; *p != '\0' && bitIdx < 8; ++bitIdx) {
@@ -64,132 +64,95 @@ byte_string operator"" _bs(const char *const str, std::size_t len) {
   return result;
 }
 
+BitReader::BitReader(BitReader::iterator begin, BitReader::iterator end)
+    : _current(begin), _end(end) {}
 
-enum class Bit {
-  ZERO = 0,
-  ONE = 1
-};
-
-class BitReader {
- public:
-  using iterator = typename byte_string::const_iterator;
-
-  explicit BitReader(iterator begin, iterator end)
-      : _current(begin), _end(end) {}
-
-  auto next() -> std::optional<Bit> {
-    if (_nibble >= 8) {
-      if (_current == _end) {
-        return std::nullopt;
-      }
-      _value = *_current;
-      _nibble = 0;
-      ++_current;
+auto BitReader::next() -> std::optional<Bit> {
+  if (_nibble >= 8) {
+    if (_current == _end) {
+      return std::nullopt;
     }
-
-    auto flag = std::byte{1u} << (7u - _nibble);
-    auto bit = (_value & flag) != std::byte{0} ? Bit::ONE : Bit::ZERO;
-    _nibble += 1;
-    return bit;
-  }
-
- private:
-  iterator _current;
-  iterator _end;
-  std::byte _value{};
-  std::size_t _nibble = 8;
-};
-
-class BitWriter {
- public:
-  void append(Bit bit) {
-    if (bit == Bit::ONE) {
-      _value |= std::byte{1} << (7u - _nibble);
-    }
-    _nibble += 1;
-    if (_nibble == 8) {
-      _buffer.push_back(_value);
-      _value = std::byte{0};
-      _nibble = 0;
-    }
-  }
-
-  auto str() && -> byte_string {
-    if (_nibble > 0) {
-      _buffer.push_back(_value);
-    }
+    _value = *_current;
     _nibble = 0;
+    ++_current;
+  }
+
+  auto flag = std::byte{1u} << (7u - _nibble);
+  auto bit = (_value & flag) != std::byte{0} ? Bit::ONE : Bit::ZERO;
+  _nibble += 1;
+  return bit;
+}
+
+void BitWriter::append(Bit bit) {
+  if (bit == Bit::ONE) {
+    _value |= std::byte{1} << (7u - _nibble);
+  }
+  _nibble += 1;
+  if (_nibble == 8) {
+    _buffer.push_back(_value);
     _value = std::byte{0};
-    return std::move(_buffer);
+    _nibble = 0;
+  }
+}
+
+auto BitWriter::str() && -> byte_string {
+  if (_nibble > 0) {
+    _buffer.push_back(_value);
+  }
+  _nibble = 0;
+  _value = std::byte{0};
+  return std::move(_buffer);
+}
+
+void BitWriter::reserve(std::size_t amount) {
+  _buffer.reserve(amount);
+}
+
+RandomBitReader::RandomBitReader(const byte_string& ref) : ref(ref) {}
+
+auto RandomBitReader::getBit(unsigned int index) -> Bit {
+  auto byte = index / 8;
+  auto nibble = index % 8;
+
+  if (byte >= ref.size()) {
+    return Bit::ZERO;
   }
 
-  void reserve(std::size_t amount) {
-    _buffer.reserve(amount);
+  auto b = ref[byte] & (1_b << (7 - nibble));
+  return b != 0_b ? Bit::ONE : Bit::ZERO;
+}
+
+RandomBitManipulator::RandomBitManipulator(byte_string& ref) : ref(ref) {}
+
+auto RandomBitManipulator::getBit(unsigned int index) -> Bit {
+  auto byte = index / 8;
+  auto nibble = index % 8;
+
+  if (byte >= ref.size()) {
+    return Bit::ZERO;
   }
 
- private:
-  std::size_t _nibble = 0;
-  std::byte _value = std::byte{0};
-  byte_string _buffer;
-};
+  auto b = ref[byte] & (1_b << (7 - nibble));
+  return b != 0_b ? Bit::ONE : Bit::ZERO;
+}
 
+auto RandomBitManipulator::setBit(unsigned int index, Bit value) -> void {
+  auto byte = index / 8;
+  auto nibble = index % 8;
 
-struct RandomBitReader {
-  RandomBitReader(byte_string const &ref) : ref(ref) {}
-
-  auto getBit(unsigned index) -> Bit {
-    auto byte = index / 8;
-    auto nibble = index % 8;
-
-    if (byte >= ref.size()) {
-      return Bit::ZERO;
-    }
-
-    auto b = ref[byte] & (1_b << (7 - nibble));
-    return b != 0_b ? Bit::ONE : Bit::ZERO;
+  if (byte >= ref.size()) {
+    ref.resize(byte + 1);
   }
+  auto bit = 1_b << (7 - nibble);
+  ref[byte] = (ref[byte] & ~bit) | (value == Bit::ONE ? bit : 0_b);
+}
 
- private:
-  byte_string const &ref;
-};
-
-struct RandomBitManipulator {
-  RandomBitManipulator(byte_string &ref) : ref(ref) {}
-
-  auto getBit(unsigned index) -> Bit {
-    auto byte = index / 8;
-    auto nibble = index % 8;
-
-    if (byte >= ref.size()) {
-      return Bit::ZERO;
-    }
-
-    auto b = ref[byte] & (1_b << (7 - nibble));
-    return b != 0_b ? Bit::ONE : Bit::ZERO;
-  }
-
-  auto setBit(unsigned index, Bit value) -> void {
-    auto byte = index / 8;
-    auto nibble = index % 8;
-
-    if (byte >= ref.size()) {
-      ref.resize(byte + 1);
-    }
-    auto bit = 1_b << (7 - nibble);
-    ref[byte] = (ref[byte] & ~bit) | (value == Bit::ONE ? bit : 0_b);
-  }
-
- private:
-  byte_string &ref;
-};
-
-
-auto interleave(std::vector<byte_string> const &vec) -> byte_string {
+auto interleave(std::vector<byte_string> const& vec) -> byte_string {
   std::size_t max_size = 0;
   std::vector<BitReader> reader;
   reader.reserve(vec.size());
 
-  for (auto &str : vec) {
+  for (auto& str : vec) {
     if (str.size() > max_size) {
       max_size = str.size();
     }
@@ -200,7 +163,7 @@ auto interleave(std::vector<byte_string> const &vec) -> byte_string {
   bitWriter.reserve(vec.size() * max_size);
 
   for (size_t i = 0; i < 8 * max_size; i++) {
-    for (auto &it : reader) {
+    for (auto& it : reader) {
       auto b = it.next();
       bitWriter.append(b.value_or(Bit::ZERO));
     }
@@ -209,14 +172,14 @@ auto interleave(std::vector<byte_string> const &vec) -> byte_string {
   return std::move(bitWriter).str();
 }
 
-auto transpose(byte_string const &bs, std::size_t dimensions) -> std::vector<byte_string> {
+auto transpose(byte_string const& bs, std::size_t dimensions) -> std::vector<byte_string> {
   assert(dimensions > 0);
   BitReader reader(bs.cbegin(), bs.cend());
   std::vector<BitWriter> writer;
   writer.resize(dimensions);
 
   while (true) {
-    for (auto &w : writer) {
+    for (auto& w : writer) {
       auto b = reader.next();
       if (!b.has_value()) {
         goto fuckoff_cxx;
@@ -227,13 +190,13 @@ auto transpose(byte_string const &bs, std::size_t dimensions) -> std::vector<byt
 fuckoff_cxx:
 
   std::vector<byte_string> result;
-  std::transform(writer.begin(), writer.end(), std::back_inserter(result), [](auto &bs) {
+  std::transform(writer.begin(), writer.end(), std::back_inserter(result), [](auto& bs) {
     return std::move(bs).str();
   });
   return result;
 }
 
-auto compareWithBox(byte_string const &cur, byte_string const &min, byte_string const &max, std::size_t dimensions)
+auto compareWithBox(byte_string const& cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
   -> std::vector<CompareResult> {
   // TODO Don't crash with illegal dimensions
   assert(dimensions != 0);
@@ -287,14 +250,14 @@ auto compareWithBox(byte_string const &cur, byte_string const &min, byte_string 
   return result;
 }
 
-auto getNextZValue(byte_string const &cur, byte_string const &min, byte_string const &max, std::vector<CompareResult> &cmpResult)
+auto getNextZValue(byte_string const& cur, byte_string const& min, byte_string const& max, std::vector<CompareResult>& cmpResult)
   -> std::optional<byte_string> {
 
   auto result = cur;
 
   auto const dims = cmpResult.size();
 
-  auto minOutstepIter = std::min_element(cmpResult.begin(), cmpResult.end(), [&](auto const &a, auto const &b) {
+  auto minOutstepIter = std::min_element(cmpResult.begin(), cmpResult.end(), [&](auto const& a, auto const& b) {
     if (a.flag == 0) {
       return false;
     }
@@ -309,7 +272,7 @@ auto getNextZValue(byte_string const &cur, byte_string const &min, byte_string c
   RandomBitReader nisp(cur);
 
   std::size_t changeBP = dims * minOutstepIter->outStep + d;
-  ;
+
   if (minOutstepIter->flag > 0) {
     while (changeBP != 0) {
       --changeBP;
@@ -328,20 +291,25 @@ auto getNextZValue(byte_string const &cur, byte_string const &min, byte_string c
   }
 
 update_dims:
+  RandomBitManipulator rbm(result);
+  assert(rbm.getBit(changeBP) == Bit::ZERO);
+  rbm.setBit(changeBP, Bit::ONE);
+  assert(rbm.getBit(changeBP) == Bit::ONE);
+
   auto min_trans = transpose(min, dims);
-  auto next_v = transpose(cur, dims);
+  auto next_v = transpose(result, dims);
 
   for (unsigned dim = 0; dim < dims; dim++) {
-    auto &cmpRes = cmpResult[dim];
+    auto& cmpRes = cmpResult[dim];
     if (cmpRes.flag >= 0) {
       auto bp = dims * cmpRes.saveMin + dim;
-      if (changeBP > bp) {
+      if (changeBP >= bp) {
         // “set all bits of dim with bit positions > changeBP to 0”
         BitReader br(next_v[dim].begin(), next_v[dim].end());
         BitWriter bw;
         size_t i = 0;
         while (auto bit = br.next()) {
-          if (i > changeBP) {
+          if (i * dims + dim > changeBP) {
             break;
           }
           bw.append(bit.value());
@@ -354,7 +322,7 @@ update_dims:
         BitWriter bw;
         size_t i = 0;
         while (auto bit = br.next()) {
-          if (i > changeBP) {
+          if (i * dims + dim > changeBP) {
             break;
           }
           bw.append(bit.value());
@@ -405,15 +373,14 @@ auto to_byte_string_fixed_length(T v) -> byte_string {
 }
 
 template auto to_byte_string_fixed_length<uint64_t>(uint64_t) -> byte_string;
-template auto to_byte_string_fixed_length<unsigned long long>(unsigned long long) -> byte_string;
-template auto to_byte_string_fixed_length<long long>(long long) -> byte_string;
 template auto to_byte_string_fixed_length<int64_t>(int64_t) -> byte_string;
+template auto to_byte_string_fixed_length<uint32_t>(uint32_t) -> byte_string;
+template auto to_byte_string_fixed_length<int32_t>(int32_t) -> byte_string;
 
-
-std::ostream &operator<<(std::ostream &ostream, byte_string const &string) {
-  ostream << "[";
+std::ostream& operator<<(std::ostream& ostream, byte_string const& string) {
+  ostream << "[0x ";
   bool first = true;
-  for (auto const &it : string) {
+  for (auto const& it : string) {
     if (!first) {
       ostream << " ";
     }
@@ -421,5 +388,15 @@ std::ostream &operator<<(std::ostream &ostream, byte_string const &string) {
     ostream << std::hex << std::setfill('0') << std::setw(2) << std::to_integer<unsigned>(it);
   }
   ostream << "]";
+  return ostream;
+}
+
+std::ostream& operator<<(std::ostream& ostream, CompareResult const& cr) {
+  ostream << "CR{";
+  ostream << "flag=" << cr.flag;
+  ostream << ", saveMin=" << cr.saveMin;
+  ostream << ", saveMax=" << cr.saveMax;
+  ostream << ", outStep=" << cr.outStep;
+  ostream << "}";
   return ostream;
 }
