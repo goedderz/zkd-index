@@ -1,13 +1,69 @@
 #include "library.h"
 
-
-#include <iostream>
 #include <algorithm>
 #include <cassert>
-#include <iostream>
-#include <optional>
 #include <cstddef>
 #include <iomanip>
+#include <iostream>
+#include <optional>
+
+
+byte_string operator"" _bs(const char *const str, std::size_t len) {
+  using namespace std::string_literals;
+
+  std::string normalizedInput{};
+  normalizedInput.reserve(len);
+  for (char const *p = str; *p != '\0'; ++p) {
+    switch (*p) {
+      case '0':
+      case '1':
+        normalizedInput += *p;
+        break;
+      case ' ':
+      case '\'':
+        // skip whitespace and single quotes
+        break;
+      default:
+        throw std::invalid_argument{"Unexpected character "s + *p + " in byte string: " + str};
+    }
+  }
+
+  if (normalizedInput.empty()) {
+    throw std::invalid_argument{"Empty byte string"};
+  }
+
+  auto result = byte_string{};
+
+  // if the input isn't divisible by 8, calculate the offset in the first byte
+  auto bitIdx = (8 - normalizedInput.size() % 8) % 8;
+
+  char const *p = normalizedInput.c_str();
+  for (; *p != '\0'; bitIdx = 0) {
+    result += std::byte{0};
+    for (; *p != '\0' && bitIdx < 8; ++bitIdx) {
+      switch (*p) {
+        case '0':
+          break;
+        case '1': {
+          auto const bitPos = 7 - bitIdx;
+          result.back() |= (std::byte{1} << bitPos);
+          break;
+        }
+        default:
+          throw std::invalid_argument{"Unexpected character "s + *p + " in byte string: " + str};
+      }
+
+      ++p;
+      // skip whitespace and single quotes
+      while (*p == ' ' || *p == '\'') {
+        ++p;
+      }
+    }
+  }
+
+  return result;
+}
+
 
 enum class Bit {
   ZERO = 0,
@@ -79,7 +135,7 @@ class BitWriter {
 
 
 struct RandomBitReader {
-  RandomBitReader(byte_string const& ref) : ref(ref) {}
+  RandomBitReader(byte_string const &ref) : ref(ref) {}
 
   auto getBit(unsigned index) -> Bit {
     auto byte = index / 8;
@@ -94,11 +150,11 @@ struct RandomBitReader {
   }
 
  private:
-  byte_string const& ref;
+  byte_string const &ref;
 };
 
 struct RandomBitManipulator {
-  RandomBitManipulator(byte_string& ref) : ref(ref) {}
+  RandomBitManipulator(byte_string &ref) : ref(ref) {}
 
   auto getBit(unsigned index) -> Bit {
     auto byte = index / 8;
@@ -117,14 +173,14 @@ struct RandomBitManipulator {
     auto nibble = index % 8;
 
     if (byte >= ref.size()) {
-      ref.resize(byte+1);
+      ref.resize(byte + 1);
     }
     auto bit = 1_b << (7 - nibble);
     ref[byte] = (ref[byte] & ~bit) | (value == Bit::ONE ? bit : 0_b);
   }
 
  private:
-  byte_string& ref;
+  byte_string &ref;
 };
 
 
@@ -252,8 +308,9 @@ auto getNextZValue(byte_string const &cur, byte_string const &min, byte_string c
 
   RandomBitReader nisp(cur);
 
-  std::size_t changeBP = dims * minOutstepIter->outStep + d;;
-  if (minOutstepIter->flag > 0)  {
+  std::size_t changeBP = dims * minOutstepIter->outStep + d;
+  ;
+  if (minOutstepIter->flag > 0) {
     while (changeBP != 0) {
       --changeBP;
       if (nisp.getBit(changeBP) == Bit::ZERO) {
@@ -265,31 +322,60 @@ auto getNextZValue(byte_string const &cur, byte_string const &min, byte_string c
           goto update_dims;
         }
       }
-
     }
 
     return std::nullopt;
   }
 
 update_dims:
-  // TODO implement
-  assert(false);
+  auto min_trans = transpose(min, dims);
+  auto next_v = transpose(cur, dims);
+
   for (unsigned dim = 0; dim < dims; dim++) {
-    auto& cmpRes = cmpResult[dim];
+    auto &cmpRes = cmpResult[dim];
     if (cmpRes.flag >= 0) {
       auto bp = dims * cmpRes.saveMin + dim;
-      if(changeBP > bp) {
+      if (changeBP > bp) {
         // “set all bits of dim with bit positions > changeBP to 0”
-      }else {
+        BitReader br(next_v[dim].begin(), next_v[dim].end());
+        BitWriter bw;
+        size_t i = 0;
+        while (auto bit = br.next()) {
+          if (i > changeBP) {
+            break;
+          }
+          bw.append(bit.value());
+          i++;
+        }
+        next_v[dim] = std::move(bw).str();
+      } else {
         // “set all bits of dim with bit positions >  changeBP  to  the  minimum  of  the  query  box  in  this dim”
+        BitReader br(next_v[dim].begin(), next_v[dim].end());
+        BitWriter bw;
+        size_t i = 0;
+        while (auto bit = br.next()) {
+          if (i > changeBP) {
+            break;
+          }
+          bw.append(bit.value());
+          i++;
+        }
+        BitReader br_min(min_trans[dim].begin(), min_trans[dim].end());
+        for (auto j = 0; j < i; ++j) {
+          br_min.next();
+        }
+        for (; auto bit = br_min.next(); ++i) {
+          bw.append(bit.value());
+        }
+        next_v[dim] = std::move(bw).str();
       }
     } else {
       // load the minimum for that dimension
-
+      next_v[dim] = min_trans[dim];
     }
   }
 
-  return result;
+  return interleave(next_v);
 }
 
 template<typename T>
@@ -318,14 +404,16 @@ auto to_byte_string_fixed_length(T v) -> byte_string {
   return result;
 }
 
-template auto to_byte_string_fixed_length<uint64_t >(uint64_t) -> byte_string;
+template auto to_byte_string_fixed_length<uint64_t>(uint64_t) -> byte_string;
+template auto to_byte_string_fixed_length<unsigned long long>(unsigned long long) -> byte_string;
+template auto to_byte_string_fixed_length<long long>(long long) -> byte_string;
 template auto to_byte_string_fixed_length<int64_t>(int64_t) -> byte_string;
 
 
-std::ostream& operator<<(std::ostream& ostream, byte_string const& string) {
+std::ostream &operator<<(std::ostream &ostream, byte_string const &string) {
   ostream << "[";
   bool first = true;
-  for (auto const& it : string) {
+  for (auto const &it : string) {
     if (!first) {
       ostream << " ";
     }

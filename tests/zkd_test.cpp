@@ -7,62 +7,6 @@
 #include "library.h"
 #include "rocksdb-handle.h"
 
-byte_string operator"" _bs(const char *const str, std::size_t len) {
-  using namespace std::string_literals;
-
-  std::string normalizedInput{};
-  normalizedInput.reserve(len);
-  for (char const *p = str; *p != '\0'; ++p) {
-    switch (*p) {
-      case '0':
-      case '1':
-        normalizedInput += *p;
-        break;
-      case ' ':
-      case '\'':
-        // skip whitespace and single quotes
-        break;
-      default:
-        throw std::invalid_argument{"Unexpected character "s + *p + " in byte string: " + str};
-    }
-  }
-
-  if (normalizedInput.empty()) {
-    throw std::invalid_argument{"Empty byte string"};
-  }
-
-  auto result = byte_string{};
-
-  // if the input isn't divisible by 8, calculate the offset in the first byte
-  auto bitIdx = (8 - normalizedInput.size() % 8) % 8;
-
-  char const *p = normalizedInput.c_str();
-  for (; *p != '\0'; bitIdx = 0) {
-    result += std::byte{0};
-    for (; *p != '\0' && bitIdx < 8; ++bitIdx) {
-      switch (*p) {
-        case '0':
-          break;
-        case '1': {
-          auto const bitPos = 7 - bitIdx;
-          result.back() |= (std::byte{1} << bitPos);
-          break;
-        }
-        default:
-          throw std::invalid_argument{"Unexpected character "s + *p + " in byte string: " + str};
-      }
-
-      ++p;
-      // skip whitespace and single quotes
-      while (*p == ' ' || *p == '\'') {
-        ++p;
-      }
-    }
-  }
-
-  return result;
-}
-
 TEST(byteStringLiteral, bs) {
   EXPECT_THROW(""_bs, std::invalid_argument);
   EXPECT_THROW(" "_bs, std::invalid_argument);
@@ -333,6 +277,9 @@ TEST(rocksdb, cmp_slice) {
   }
 }
 
+
+std::ostream& operator<<(std::ostream& os, std::vector<byte_string> const& bsvec) {}
+
 TEST(getNextZValue, testFigure41) {
   // lower point of the box: (2, 2)
   auto const pMin = interleave({"010"_bs, "010"_bs});
@@ -351,7 +298,8 @@ TEST(getNextZValue, testFigure41) {
     auto cmpResult = compareWithBox(input, pMin, pMax, 2);
     // input should be outside the box:
     ASSERT_TRUE(std::any_of(cmpResult.begin(), cmpResult.end(),
-                            [](auto const &it) { return it.flag != 0; }));
+                            [](auto const &it) { return it.flag != 0; }))
+      << "with input=" << inputCoords << ", expected=" << expectedCoords;
     auto result = getNextZValue(input, pMin, pMax, cmpResult);
     EXPECT_EQ(expected, result);
     // TODO should cmpResult be checked?

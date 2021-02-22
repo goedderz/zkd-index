@@ -13,6 +13,8 @@ static std::byte operator"" _b(unsigned long long b) {
 using byte_string = std::basic_string<std::byte>;
 using byte_string_view = std::basic_string_view<std::byte>;
 
+byte_string operator"" _bs(const char *str, std::size_t len);
+
 std::ostream& operator<<(std::ostream& ostream, byte_string const& string);
 
 auto interleave(std::vector<byte_string> const& vec) -> byte_string;
