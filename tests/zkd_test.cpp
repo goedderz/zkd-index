@@ -133,13 +133,18 @@ TEST(compareBox, d2_eq) {
   auto v = interleave({byte_string{15_b}, byte_string{86_b}}); // (00001111, 01010110) // 0001000110111110
   auto res = compareWithBox(v, min_v, max_v, 2);
 
-  // 0001000001110011 -- min (5, 77)
-  // 0001000110111110 -- cur (15, 86)
-  // 0001110101001011 -- max (35, 121)
+  // 00 01 00 00 01 11 00 11 -- min (5, 77)
+  // 00 01 00 01 10 11 11 10 -- cur (15, 86)
+  // 00 01 11 01 01 00 10 11 -- max (35, 121)
 
   EXPECT_EQ(res[0].flag, 0);
+  EXPECT_EQ(res[0].saveMin, 4);
+  EXPECT_EQ(res[0].saveMax, 2);
+  EXPECT_EQ(res[0].outStep, CompareResult::max);
   EXPECT_EQ(res[1].flag, 0);
-  // TODO
+  EXPECT_EQ(res[1].saveMin, 3);
+  EXPECT_EQ(res[1].saveMax, 2);
+  EXPECT_EQ(res[1].outStep, CompareResult::max);
 }
 
 TEST(compareBox, d2_eq2) {
