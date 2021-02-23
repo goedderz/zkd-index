@@ -89,11 +89,11 @@ TEST(interleave, d2_empty) {
 }
 
 TEST(interleave, d2_multi) {
-  auto const testees = std::array{
-    std::pair{byte_string{0b01010101_b, 0b10101010_b}, std::tuple{byte_string{0b00001111_b}, byte_string{0b11110000_b}}},
-    std::pair{byte_string{0b01010101_b, 0b01010101_b, 0b00110011_b, 0b00110011_b}, std::tuple{byte_string{0b00000000_b, 0b01010101_b}, byte_string{0b11111111_b, 0b01010101_b}}},
-    std::pair{byte_string{0b10101010_b, 0b10101010_b, 0b01010101_b, 0b01010101_b}, std::tuple{byte_string{0b11111111_b}, byte_string{0b00000000_b, 0b11111111_b}}},
-    std::pair{byte_string{0b01010111_b, 0b01010111_b, 0b00010001_b, 0b00010001_b, 0b01000100_b, 0b01000100_b}, std::tuple{byte_string{0b00010001_b}, byte_string{0b11111111_b, 0b01010101_b, 0b10101010_b}}},
+  auto const testees = {
+    std::pair{"01010101'10101010"_bs, std::tuple{"00001111"_bs, "11110000"_bs}},
+    {"01010101'01010101'00110011'00110011"_bs, {"00000000'01010101"_bs, "11111111'01010101"_bs}},
+    {"10101010'10101010'01010101'01010101"_bs, {"11111111"_bs, "00000000'11111111"_bs}},
+    {"01010111'01010111'00010001'00010001'01000100'01000100"_bs, {"00010001"_bs, "11111111'01010101'10101010"_bs}},
   };
   for (auto const& it : testees) {
     auto const& [expected, testee] = it;
@@ -108,10 +108,10 @@ TEST(transpose, d3_empty) {
 }
 
 TEST(transpose, d3_multi) {
-  auto const testees = std::array{
-    std::pair{byte_string{0b00011100_b}, std::vector<byte_string>{{0b01000000_b}, {0b01000000_b}, {0b01000000_b}}},
-    std::pair{byte_string{0b00011110_b}, std::vector<byte_string>{{0b01100000_b}, {0b01000000_b}, {0b01000000_b}}},
-    std::pair{byte_string{0b10101010_b}, std::vector<byte_string>{{0b10100000_b}, {0b01000000_b}, {0b10000000_b}}},
+  auto const testees = {
+    std::pair{"00011100"_bs, std::vector{"01000000"_bs, "01000000"_bs, "01000000"_bs}},
+    {"00011110"_bs, {"01100000"_bs, "01000000"_bs, "01000000"_bs}},
+    {"10101010"_bs, {"10100000"_bs, "01000000"_bs, "10000000"_bs}},
   };
   for (auto const& it : testees) {
     auto const& [testee, expected] = it;
@@ -121,16 +121,10 @@ TEST(transpose, d3_multi) {
 }
 
 TEST(compareBox, d2_eq) {
+  auto min_v = interleave({"00000101"_bs, "01001101"_bs}); // 00 01 00 00 01 11 00 11
+  auto max_v = interleave({"00100011"_bs, "01111001"_bs}); // 00 01 11 01 01 00 10 11
+  auto v = interleave({"00001111"_bs, "01010110"_bs});     // 00 01 00 01 10 11 11 10
 
-  auto d1 = std::make_pair(5_b, 35_b);   // (00000101, 00100011)
-  auto d2 = std::make_pair(77_b, 121_b); // (01001101, 01111001)
-
-  auto min_v = interleave({byte_string{d1.first}, byte_string{d2.first}});   // 0001000001110011
-  auto max_v = interleave({byte_string{d1.second}, byte_string{d2.second}}); // 0001110101001011
-
-  //ASSERT_TRUE(strcmp(min_v.data(), max_v.data()) < 0);
-
-  auto v = interleave({byte_string{15_b}, byte_string{86_b}}); // (00001111, 01010110) // 0001000110111110
   auto res = compareWithBox(v, min_v, max_v, 2);
 
   // 00 01 00 00 01 11 00 11 -- min (5, 77)
@@ -148,52 +142,43 @@ TEST(compareBox, d2_eq) {
 }
 
 TEST(compareBox, d2_eq2) {
+  auto min_v = interleave({"00000010"_bs, "00000011"_bs}); // 00 00 00 00 00 00 11 01
+  auto max_v = interleave({"00000110"_bs, "00000101"_bs}); // 00 00 00 00 00 11 10 01
+  auto v = interleave({"00000011"_bs, "00000011"_bs});     // 00 00 00 00 00 00 11 11
 
-  auto d1 = std::make_pair(2_b, 6_b); // (00000010, 00000110)
-  auto d2 = std::make_pair(3_b, 5_b); // (00000011, 00000101)
-
-  auto min_v = interleave({byte_string{d1.first}, byte_string{d2.first}});   // 00 00 00 00 00 00 11 01
-  auto max_v = interleave({byte_string{d1.second}, byte_string{d2.second}}); // 00 00 00 00 00 11 10 01
-
-  // ASSERT_TRUE(strcmp(min_v.data(), max_v.data()) < 0);
-
-  auto v = interleave({byte_string{3_b}, byte_string{3_b}}); // (00000011, 00000011) -- 00 00 00 00 00 00 11 11
   auto res = compareWithBox(v, min_v, max_v, 2);
 
   EXPECT_EQ(res[0].flag, 0);
   EXPECT_EQ(res[0].saveMin, 7);
   EXPECT_EQ(res[0].saveMax, 5);
-
+  EXPECT_EQ(res[0].outStep, CompareResult::max);
   EXPECT_EQ(res[1].flag, 0);
-  // TODO
+  EXPECT_EQ(res[1].saveMin, CompareResult::max);
+  EXPECT_EQ(res[1].saveMax, 5);
+  EXPECT_EQ(res[1].outStep, CompareResult::max);
 }
 
 TEST(compareBox, d2_less) {
-  auto d1 = std::make_pair(5_b, 35_b);
-  auto d2 = std::make_pair(77_b, 121_b);
-  auto p = std::make_pair(3_b, 86_b);
+  auto min_v = interleave({"00000101"_bs, "01001101"_bs});
+  auto max_v = interleave({"00100011"_bs, "01111001"_bs});
+  auto v = interleave({"00000011"_bs, "01010110"_bs});
 
-  auto min_v = interleave({byte_string{d1.first}, byte_string{d2.first}});
-  auto max_v = interleave({byte_string{d1.second}, byte_string{d2.second}});
-
-  //ASSERT_TRUE(strcmp(min_v.data(), max_v.data()) < 0);
-
-  auto v = interleave({byte_string{p.first}, byte_string{p.second}});
   auto res = compareWithBox(v, min_v, max_v, 2);
 
   EXPECT_EQ(res[0].flag, -1);
+  EXPECT_EQ(res[0].saveMin, CompareResult::max);
+  EXPECT_EQ(res[0].saveMax, 2);
+  EXPECT_EQ(res[0].outStep, 5);
   EXPECT_EQ(res[1].flag, 0);
-  // TODO
+  EXPECT_EQ(res[1].saveMin, 3);
+  EXPECT_EQ(res[1].saveMax, 2);
+  EXPECT_EQ(res[1].outStep, CompareResult::max);
 }
 
 TEST(compareBox, d2_x_less_y_greater) {
-  auto d1 = std::make_pair(0b100_b, 0b1000_b);
-  auto d2 = std::make_pair(0b10_b, 0b110_b);
-  auto p = std::make_pair(0b11_b, 0b10000_b);
-
-  auto min_v = interleave({byte_string{d1.first}, byte_string{d2.first}});   // 00 00 00 00 00 10 01 00
-  auto max_v = interleave({byte_string{d1.second}, byte_string{d2.second}}); // 00 00 00 00 10 01 01 00
-  auto v = interleave({byte_string{p.first}, byte_string{p.second}});        // 00 00 00 01 00 00 10 10
+  auto min_v = interleave({"100"_bs, "10"_bs});   // 00 00 00 00 00 10 01 00
+  auto max_v = interleave({"1000"_bs, "110"_bs}); // 00 00 00 00 10 01 01 00
+  auto v = interleave({"11"_bs, "10000"_bs});     // 00 00 00 01 00 00 10 10
 
   auto res = compareWithBox(v, min_v, max_v, 2);
 
@@ -208,14 +193,9 @@ TEST(compareBox, d2_x_less_y_greater) {
 }
 
 TEST(compareBox, d3_x_less_y_greater_z_eq) {
-  auto d1 = std::make_pair<byte_string, byte_string>({0b100_b}, {0b1000_b});
-  auto d2 = std::make_pair<byte_string, byte_string>({0b10_b}, {0b110_b});
-  auto d3 = std::make_pair<byte_string, byte_string>({0b0_b}, {0b10_b});
-  auto p = std::array{byte_string{0b11_b}, byte_string{0b10000_b}, byte_string{0b10_b}};
-
-  auto min_v = interleave({d1.first, d2.first, d3.first});    // 000 000 000 000 000 100 010 000
-  auto max_v = interleave({d1.second, d2.second, d3.second}); // 000 000 000 000 100 010 011 000
-  auto v = interleave({p[0], p[1], p[2]});                    // 000 000 000 010 000 000 101 100
+  auto min_v = interleave({"100"_bs, "10"_bs, "0"_bs});    // 000 000 000 000 000 100 010 000
+  auto max_v = interleave({"1000"_bs, "110"_bs, "10"_bs}); // 000 000 000 000 100 010 011 000
+  auto v = interleave({"11"_bs, "10000"_bs, "10"_bs});     // 000 000 000 010 000 000 101 100
 
   auto res = compareWithBox(v, min_v, max_v, 3);
 
@@ -253,32 +233,10 @@ TEST(compareBox, testFigure41_3) {
   EXPECT_EQ(res[1].outStep, CompareResult::max);
 }
 
-#if 0
-// class RocksdbTest : public testing::Test {
-//  public:
-//
-//   // static std::shared_ptr<RocksDBHandle> db;
-//
-//  protected:
-//   static void SetUpTestCase() {
-//     // db = OpenRocksDB("tmp");
-//     //
-//     // db->db->Put(rocksdb::WriteOptions(), "foobar", "baz");
-//     //
-//     // auto value = std::string{};
-//     // auto res = db->db->Get(rocksdb::ReadOptions(), "foobar", &value);
-//   }
-//
-//   auto cmp = rocksdb::BytewiseComparator();
-//   void SetUp() {
-//   }
-// };
-#endif
-
 TEST(rocksdb, convert_bytestring) {
   auto const data = {
-    byte_string{0b00011100_b},
-    byte_string{0b11111111_b, 0b01010101_b},
+    "00011100"_bs,
+    "11111111'01010101"_bs,
   };
 
   for (auto const& it : data) {
@@ -307,10 +265,10 @@ TEST(rocksdb, cmp_slice) {
     GT = 1
   };
   auto const data = {
-    std::pair{Cmp::EQ, std::pair{byte_string{0x42_b}, byte_string{0x42_b}}},
-    std::pair{Cmp::EQ, std::pair{byte_string{0x01_b, 0x02_b}, byte_string{0x01_b, 0x02_b}}},
-    std::pair{Cmp::LT, std::pair{byte_string{0x01_b, 0x01_b}, byte_string{0x01_b, 0x02_b}}},
-    std::pair{Cmp::GT, std::pair{byte_string{0x80_b}, byte_string{0x7f_b, 0xff_b}}},
+    std::pair{Cmp::EQ, std::pair{"00101010"_bs, "00101010"_bs}},
+    std::pair{Cmp::EQ, std::pair{"00000001'00000010"_bs, "00000001'00000010"_bs}},
+    std::pair{Cmp::LT, std::pair{"00000001'00000001"_bs, "00000001'00000010"_bs}},
+    std::pair{Cmp::GT, std::pair{"10000000"_bs, "011111111'11111111"_bs}},
     // TODO more tests
   };
 
