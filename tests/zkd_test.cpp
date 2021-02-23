@@ -49,16 +49,34 @@ TEST(byteStringLiteral, bs) {
   EXPECT_THROW("0 2"_bs, std::invalid_argument);
   EXPECT_THROW("1 2"_bs, std::invalid_argument);
 
-  EXPECT_EQ(byte_string{std::byte{0}}, "0"_bs);
-  EXPECT_EQ(byte_string{std::byte{1}}, "1"_bs);
+  { // These currently throw, but we may want to change _bs later to always
+    // start with the most significant bit.
+
+    // EXPECT_EQ(byte_string{std::byte{0}}, "0"_bs);
+    // EXPECT_EQ(byte_string{std::byte{1}}, "1"_bs);
+    EXPECT_THROW("0"_bs, std::invalid_argument);
+    EXPECT_THROW("1"_bs, std::invalid_argument);
+    // EXPECT_EQ((byte_string{std::byte{0}, std::byte{0}}), "00000000 0"_bs);
+    // EXPECT_EQ((byte_string{std::byte{0}, std::byte{1}}), "0 00000001"_bs);
+    // EXPECT_EQ((byte_string{std::byte{0}, std::byte{2}}), "0 00000010"_bs);
+    // EXPECT_EQ((byte_string{std::byte{1}, std::byte{0}}), "1 00000000"_bs);
+    EXPECT_THROW("00000000 0"_bs, std::invalid_argument);
+    EXPECT_THROW("0 00000001"_bs, std::invalid_argument);
+    EXPECT_THROW("0 00000010"_bs, std::invalid_argument);
+    EXPECT_THROW("1 00000000"_bs, std::invalid_argument);
+    // EXPECT_EQ((byte_string{std::byte{42}, std::byte{42}}), "101010 00101010"_bs);
+    EXPECT_THROW("101010 00101010"_bs, std::invalid_argument);
+    //EXPECT_EQ((byte_string{std::byte{0}, std::byte{42}, std::byte{42}}), "0 00101010 00101010"_bs);
+    EXPECT_THROW("0 00101010 00101010"_bs, std::invalid_argument);
+  }
+
   EXPECT_EQ(byte_string{std::byte{0}}, "00000000"_bs);
-  EXPECT_EQ((byte_string{std::byte{0}, std::byte{0}}), "00000000 0"_bs);
-  EXPECT_EQ((byte_string{std::byte{0}, std::byte{1}}), "0 00000001"_bs);
-  EXPECT_EQ((byte_string{std::byte{0}, std::byte{2}}), "0 00000010"_bs);
-  EXPECT_EQ((byte_string{std::byte{1}, std::byte{0}}), "1 00000000"_bs);
-  EXPECT_EQ((byte_string{std::byte{42}, std::byte{42}}), "101010 00101010"_bs);
+  EXPECT_EQ((byte_string{std::byte{0}, std::byte{0}}), "00000000 00000000"_bs);
+  EXPECT_EQ((byte_string{std::byte{0}, std::byte{1}}), "00000000 00000001"_bs);
+  EXPECT_EQ((byte_string{std::byte{0}, std::byte{2}}), "00000000 00000010"_bs);
+  EXPECT_EQ((byte_string{std::byte{1}, std::byte{0}}), "00000001 00000000"_bs);
   EXPECT_EQ((byte_string{std::byte{42}, std::byte{42}}), "00101010 00101010"_bs);
-  EXPECT_EQ((byte_string{std::byte{0}, std::byte{42}, std::byte{42}}), "0 00101010 00101010"_bs);
+  EXPECT_EQ((byte_string{std::byte{0}, std::byte{42}, std::byte{42}}), "00000000 00101010 00101010"_bs);
 }
 
 TEST(interleave, d0) {
@@ -72,10 +90,10 @@ TEST(interleave, d1_empty) {
 }
 
 TEST(interleave, d1_multi) {
-  auto const testees = std::array{
-    byte_string{0x42_b},
-    byte_string{{0x42_b, 0x42_b}},
-    byte_string{{0x01_b, 0x02_b, 0x03_b}},
+  auto const testees = {
+    "00101010"_bs,
+    "00101010'00101010"_bs,
+    "00000001'00000010'00000011"_bs,
   };
   for (auto const& testee : testees) {
     auto const res = interleave({testee});
@@ -176,9 +194,9 @@ TEST(compareBox, d2_less) {
 }
 
 TEST(compareBox, d2_x_less_y_greater) {
-  auto min_v = interleave({"100"_bs, "10"_bs});   // 00 00 00 00 00 10 01 00
-  auto max_v = interleave({"1000"_bs, "110"_bs}); // 00 00 00 00 10 01 01 00
-  auto v = interleave({"11"_bs, "10000"_bs});     // 00 00 00 01 00 00 10 10
+  auto min_v = interleave({"00000100"_bs, "00000010"_bs}); // 00 00 00 00 00 10 01 00
+  auto max_v = interleave({"00001000"_bs, "00000110"_bs}); // 00 00 00 00 10 01 01 00
+  auto v = interleave({"00000011"_bs, "00010000"_bs});     // 00 00 00 01 00 00 10 10
 
   auto res = compareWithBox(v, min_v, max_v, 2);
 
@@ -193,9 +211,9 @@ TEST(compareBox, d2_x_less_y_greater) {
 }
 
 TEST(compareBox, d3_x_less_y_greater_z_eq) {
-  auto min_v = interleave({"100"_bs, "10"_bs, "0"_bs});    // 000 000 000 000 000 100 010 000
-  auto max_v = interleave({"1000"_bs, "110"_bs, "10"_bs}); // 000 000 000 000 100 010 011 000
-  auto v = interleave({"11"_bs, "10000"_bs, "10"_bs});     // 000 000 000 010 000 000 101 100
+  auto min_v = interleave({"00000100"_bs, "00000010"_bs, "00000000"_bs}); // 000 000 000 000 000 100 010 000
+  auto max_v = interleave({"00001000"_bs, "00000110"_bs, "00000010"_bs}); // 000 000 000 000 100 010 011 000
+  auto v = interleave({"00000011"_bs, "00010000"_bs, "00000010"_bs});     // 000 000 000 010 000 000 101 100
 
   auto res = compareWithBox(v, min_v, max_v, 3);
 
@@ -216,11 +234,11 @@ TEST(compareBox, d3_x_less_y_greater_z_eq) {
 
 TEST(compareBox, testFigure41_3) {
   // lower point of the box: (2, 2)
-  auto min_v = interleave({"0000 0010"_bs, "0000 0010"_bs});
+  auto min_v = interleave({"00000010"_bs, "00000010"_bs});
   // upper point of the box: (5, 4)
-  auto max_v = interleave({"0000 0101"_bs, "0000 0100"_bs});
+  auto max_v = interleave({"00000101"_bs, "00000100"_bs});
 
-  auto v = interleave({"0000 0110"_bs, "0000 0010"_bs}); // (6, 2)
+  auto v = interleave({"00000110"_bs, "00000010"_bs}); // (6, 2)
   auto res = compareWithBox(v, min_v, max_v, 2);
 
   EXPECT_EQ(res[0].flag, 1);
@@ -268,7 +286,7 @@ TEST(rocksdb, cmp_slice) {
     std::pair{Cmp::EQ, std::pair{"00101010"_bs, "00101010"_bs}},
     std::pair{Cmp::EQ, std::pair{"00000001'00000010"_bs, "00000001'00000010"_bs}},
     std::pair{Cmp::LT, std::pair{"00000001'00000001"_bs, "00000001'00000010"_bs}},
-    std::pair{Cmp::GT, std::pair{"10000000"_bs, "011111111'11111111"_bs}},
+    std::pair{Cmp::GT, std::pair{"10000000"_bs, "01111111'11111111"_bs}},
     // TODO more tests
   };
 
@@ -291,9 +309,9 @@ TEST(rocksdb, cmp_slice) {
 
 TEST(getNextZValue, testFigure41) {
   // lower point of the box: (2, 2)
-  auto const pMin = interleave({"010"_bs, "010"_bs});
+  auto const pMin = interleave({"00000010"_bs, "00000010"_bs});
   // upper point of the box: (4, 5)
-  auto const pMax = interleave(std::vector{"100"_bs, "101"_bs});
+  auto const pMax = interleave(std::vector{"00000100"_bs, "00000101"_bs});
 
   auto test = [&pMin, &pMax](std::vector<byte_string> const& inputCoords, std::optional<std::vector<byte_string>> const& expectedCoords) {
     auto const input = interleave(inputCoords);
@@ -335,11 +353,11 @@ TEST(getNextZValue, testFigure41) {
   // (4, 2) -> (4, 3) -/> (5, 2)
   // (4, 4) -> (4, 5) -/> (5, 4)
 
-  test({"0"_bs, "0"_bs}, {{"10"_bs, "10"_bs}});
-  test({"0"_bs, "100"_bs}, {{"10"_bs, "100"_bs}});
-  test({"10"_bs, "110"_bs}, {{"100"_bs, "10"_bs}});
-  test({"101"_bs, "10"_bs}, {{"100"_bs, "100"_bs}});
-  test({"101"_bs, "100"_bs}, std::nullopt);
+  test({"00000000"_bs, "00000000"_bs}, {{"00000010"_bs, "00000010"_bs}});
+  test({"00000000"_bs, "00000100"_bs}, {{"00000010"_bs, "00000100"_bs}});
+  test({"00000010"_bs, "00000110"_bs}, {{"00000100"_bs, "00000010"_bs}});
+  test({"00000101"_bs, "00000010"_bs}, {{"00000100"_bs, "00000100"_bs}});
+  test({"00000101"_bs, "00000100"_bs}, std::nullopt);
 
   for (uint8_t xi = 0; xi < 8; ++xi) {
     for (uint8_t yi = 0; yi < 8; ++yi) {
