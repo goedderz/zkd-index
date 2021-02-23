@@ -56,7 +56,7 @@ void fillRocksdb(std::shared_ptr<RocksDBHandle> const& rocks) {
     }
 
 
-    auto key = interleave_bytes(coords);
+    auto key = interleave(coords);
     if (i % 10000 == 9999) {
       std::cout << "wrote 10000 entries" << std::endl;
       std::cout << key << std::endl;
@@ -83,7 +83,7 @@ static auto viewFromSlice(rocksdb::Slice slice) -> byte_string_view {
 }
 
 auto findAllInBox(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<byte_string> const& min, std::vector<byte_string> const& max)
-  -> std::unordered_set<point> {
+  -> std::pair<std::unordered_set<point>, std::size_t> {
 
   auto min_s = interleave(min);
   auto max_s = interleave(max);
@@ -93,10 +93,12 @@ auto findAllInBox(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<byte_
   byte_string cur = min_s;
 
   std::unordered_set<point> res;
+  std::size_t num_seeks = 0;
 
   while (true) {
     //std::cout << "Seeking to " << cur << std::endl;
     iter->Seek(sliceFromString(cur));
+    num_seeks += 1;
     auto s = iter->status();
     if (!s.ok()) {
       std::cerr << s.ToString() << std::endl;
@@ -108,12 +110,12 @@ auto findAllInBox(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<byte_
 
     while (true) {
       auto key = viewFromSlice(iter->key());
-      if (!testInBoxBytes(key, min_s, max_s, 4)) {
+      if (!testInBox(key, min_s, max_s, 4)) {
         cur = key;
         break;
       }
 
-      auto value = transpose_bytes(byte_string{key}, 4);
+      auto value = transpose(byte_string{key}, 4);
 
       //std::cout << value[0] << " " << value[1] << " " << value[2] << " " << value[3] << std::endl;
       res.insert({from_byte_string_fixed_length<uint64_t>(value[0]),
@@ -123,9 +125,9 @@ auto findAllInBox(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<byte_
       iter->Next();
     }
 
-    auto cmp = compareWithBoxBytes(cur, min_s, max_s, 4);
+    auto cmp = compareWithBox(cur, min_s, max_s, 4);
 
-    auto next = getNextZValueBytes(cur, min_s, max_s, cmp);
+    auto next = getNextZValue(cur, min_s, max_s, cmp);
     if (!next) {
       break;
     }
@@ -133,15 +135,15 @@ auto findAllInBox(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<byte_
     cur = next.value();
   }
 
-  return res;
+  return std::make_pair(res, num_seeks);
 }
 
 
 auto findAllInBoxSlow(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<byte_string> const& min, std::vector<byte_string> const& max)
   -> std::unordered_set<point> {
 
-  auto min_s = interleave_bytes(min);
-  auto max_s = interleave_bytes(max);
+  auto min_s = interleave(min);
+  auto max_s = interleave(max);
   std::unordered_set<point> res;
 
   auto iter = std::unique_ptr<rocksdb::Iterator>{rocks->db->NewIterator(rocksdb::ReadOptions{})};
@@ -151,8 +153,8 @@ auto findAllInBoxSlow(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<b
       break;
     }
     auto key = viewFromSlice(iter->key());
-    if (testInBoxBytes(key, min_s, max_s, 4)) {
-      auto value = transpose_bytes(byte_string{key}, 4);
+    if (testInBox(key, min_s, max_s, 4)) {
+      auto value = transpose(byte_string{key}, 4);
       res.insert({from_byte_string_fixed_length<uint64_t>(value[0]),
                   from_byte_string_fixed_length<uint64_t>(value[1]),
                   from_byte_string_fixed_length<uint64_t>(value[2]),
@@ -206,16 +208,18 @@ int main(int argc, char* argv[]) {
 
 
     std::unordered_set<point> res_zkd, res_linear;
+    std::size_t num_seeks;
 
     {
       std::cout << "starting zkd search" << std::endl;
       auto start = std::chrono::steady_clock::now();
-      res_zkd = findAllInBox(db, min, max);
+      std::tie(res_zkd, num_seeks) = findAllInBox(db, min, max);
       auto end = std::chrono::steady_clock::now();
       std::cout << "done " <<  std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end - start).count() << "ms" << std::endl;
       for (auto const& p : res_zkd) {
         std::cout << p << std::endl;
       }
+      std::cout << "seeks = " << num_seeks << std::endl;
     }
     {
       std::cout << "starting linear search" << std::endl;
