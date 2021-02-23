@@ -15,12 +15,16 @@ using byte_string = std::basic_string<std::byte>;
 using byte_string_view = std::basic_string_view<std::byte>;
 
 byte_string operator"" _bs(const char* str, std::size_t len);
+byte_string operator"" _bss(const char* str, std::size_t len);
 
 std::ostream& operator<<(std::ostream& ostream, byte_string const& string);
 std::ostream& operator<<(std::ostream& ostream, byte_string_view const& string);
 
 auto interleave(std::vector<byte_string> const& vec) -> byte_string;
 auto transpose(byte_string const& bs, std::size_t dimensions) -> std::vector<byte_string>;
+
+auto interleave_bytes(std::vector<byte_string> const& vec) -> byte_string;
+auto transpose_bytes(byte_string const& bs, std::size_t dimensions) -> std::vector<byte_string>;
 
 struct CompareResult {
   signed flag = 0;
@@ -37,6 +41,14 @@ auto testInBox(byte_string_view cur, byte_string const& min, byte_string const& 
 -> bool;
 
 auto getNextZValue(byte_string const& cur, byte_string const& min, byte_string const& max, std::vector<CompareResult>& cmpResult)
+-> std::optional<byte_string>;
+
+auto compareWithBoxBytes(byte_string const& cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
+  -> std::vector<CompareResult>;
+auto testInBoxBytes(byte_string_view cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
+  -> bool;
+
+auto getNextZValueBytes(byte_string const& cur, byte_string const& min, byte_string const& max, std::vector<CompareResult>& cmpResult)
   -> std::optional<byte_string>;
 
 template<typename T>
@@ -63,6 +75,19 @@ class BitReader {
   iterator _end;
   std::byte _value{};
   std::size_t _nibble = 8;
+};
+
+class ByteReader {
+ public:
+  using iterator = typename byte_string::const_iterator;
+
+  explicit ByteReader(iterator begin, iterator end);
+
+  auto next() -> std::optional<std::byte>;
+
+ private:
+  iterator _current;
+  iterator _end;
 };
 
 class BitWriter {
@@ -99,5 +124,6 @@ struct RandomBitManipulator {
  private:
   byte_string& ref;
 };
+
 
 #endif //ZKD_TREE_LIBRARY_H

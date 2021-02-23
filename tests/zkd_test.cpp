@@ -7,24 +7,7 @@
 #include "library.h"
 #include "rocksdb-handle.h"
 
-// static std::ostream &operator<<(std::ostream &os, byte_string const &bs) {
-//   assert(!bs.empty());
-//   BitReader br(bs.begin(), bs.end());
-//   while (auto bit = br.next()) {
-//     switch (bit.value()) {
-//       case Bit::ZERO:
-//         os << 0;
-//         break;
-//       case Bit::ONE:
-//         os << 1;
-//         break;
-//     }
-//   }
-//
-//   return os;
-// }
-
-static std::ostream& operator<<(std::ostream& os, std::vector<byte_string> const& bsvec) {
+std::ostream& operator<<(std::ostream& os, std::vector<byte_string> const& bsvec) {
   os << "{";
   if (!bsvec.empty()) {
     auto it = bsvec.begin();
@@ -117,6 +100,18 @@ TEST(interleave, d2_multi) {
     auto const res = interleave({std::get<0>(testee), std::get<1>(testee)});
     EXPECT_EQ(expected, res);
   }
+}
+
+TEST(interleave_byte, d3_multi) {
+  auto res = interleave_bytes({"aaa"_bss, "bbb"_bss, "c"_bss});
+  ASSERT_EQ(res, "abcab\0ab\0"_bss);
+}
+
+TEST(transpose_bytes, d3_empty) {
+  auto res = transpose_bytes("abcabcab"_bss, 3);
+  EXPECT_EQ(res[0], "aaa"_bss);
+  EXPECT_EQ(res[1], "bbb"_bss);
+  EXPECT_EQ(res[2], "cc"_bss);
 }
 
 TEST(transpose, d3_empty) {

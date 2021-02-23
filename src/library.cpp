@@ -64,8 +64,13 @@ byte_string operator"" _bs(const char* const str, std::size_t len) {
   return result;
 }
 
+
+byte_string operator"" _bss(const char* str, std::size_t len) {
+  return byte_string{ reinterpret_cast<const std::byte*>(str), len};
+}
+
 BitReader::BitReader(BitReader::iterator begin, BitReader::iterator end)
-    : _current(begin), _end(end) {}
+  : _current(begin), _end(end) {}
 
 auto BitReader::next() -> std::optional<Bit> {
   if (_nibble >= 8) {
@@ -81,6 +86,17 @@ auto BitReader::next() -> std::optional<Bit> {
   auto bit = (_value & flag) != std::byte{0} ? Bit::ONE : Bit::ZERO;
   _nibble += 1;
   return bit;
+}
+
+ByteReader::ByteReader(iterator begin, iterator end)
+  : _current(begin), _end(end) {}
+
+auto ByteReader::next() -> std::optional<std::byte> {
+
+  if (_current == _end) {
+    return std::nullopt;
+  }
+  return *(_current++);
 }
 
 void BitWriter::append(Bit bit) {
@@ -172,6 +188,34 @@ auto interleave(std::vector<byte_string> const& vec) -> byte_string {
   return std::move(bitWriter).str();
 }
 
+auto interleave_bytes(std::vector<byte_string> const& vec) -> byte_string {
+  std::size_t max_size = 0;
+  std::vector<std::pair<byte_string::const_iterator, byte_string::const_iterator>> reader;
+  reader.reserve(vec.size());
+
+  for (auto& str : vec) {
+    reader.emplace_back(std::make_pair(str.cbegin(), str.cend()));
+    if (str.size() > max_size) {
+      max_size = str.size();
+    }
+  }
+
+  byte_string result;
+
+  for (size_t i = 0; i < max_size; i++) {
+    for (auto& [it, end] : reader) {
+      if (it == end) {
+        result.push_back(0_b);
+      } else {
+        result.push_back(*it);
+        it++;
+      }
+    }
+  }
+
+  return result;
+}
+
 auto transpose(byte_string const& bs, std::size_t dimensions) -> std::vector<byte_string> {
   assert(dimensions > 0);
   BitReader reader(bs.cbegin(), bs.cend());
@@ -193,6 +237,18 @@ fuckoff_cxx:
   std::transform(writer.begin(), writer.end(), std::back_inserter(result), [](auto& bs) {
     return std::move(bs).str();
   });
+  return result;
+}
+
+auto transpose_bytes(byte_string const& bs, std::size_t dimensions) -> std::vector<byte_string> {
+  assert(dimensions > 0);
+  std::vector<byte_string> result;
+  result.resize(dimensions);
+
+  for (size_t i = 0; i < bs.size(); i++) {
+    result[i % dimensions].push_back(bs[i]);
+  }
+
   return result;
 }
 
@@ -250,9 +306,71 @@ auto compareWithBox(byte_string const& cur, byte_string const& min, byte_string 
   return result;
 }
 
+auto compareWithBoxBytes(byte_string const& cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
+-> std::vector<CompareResult> {
+  assert(dimensions != 0);
+  std::vector<CompareResult> result;
+  result.resize(dimensions);
+
+  std::size_t max_size = std::max(std::max(cur.size(), min.size()), max.size());
+
+  ByteReader cur_reader(cur.cbegin(), cur.cend());
+  ByteReader min_reader(min.cbegin(), min.cend());
+  ByteReader max_reader(max.cbegin(), max.cend());
+
+  auto isLargerThanMin = std::vector<bool>{};
+  auto isLowerThanMax = std::vector<bool>{};
+  isLargerThanMin.resize(dimensions);
+  isLowerThanMax.resize(dimensions);
+
+  for (std::size_t i = 0; i < 8 * max_size; i++) {
+    unsigned step = i / dimensions;
+    unsigned dim = i % dimensions;
+
+    auto cur_byte = cur_reader.next().value_or(0_b);
+    auto min_byte = min_reader.next().value_or(0_b);
+    auto max_byte = max_reader.next().value_or(0_b);
+
+    if (result[dim].flag != 0) {
+      continue;
+    }
+
+    if (!isLargerThanMin[dim]) {
+      if (cur_byte < min_byte) {
+        result[dim].outStep = step;
+        result[dim].flag = -1;
+      } else if (cur_byte > min_byte) {
+        isLargerThanMin[dim] = true;
+        result[dim].saveMin = step;
+      }
+    }
+
+    if (!isLowerThanMax[dim]) {
+      if (cur_byte > max_byte) {
+        result[dim].outStep = step;
+        result[dim].flag = 1;
+      } else if (cur_byte < max_byte) {
+        isLowerThanMax[dim] = true;
+        result[dim].saveMax = step;
+      }
+    }
+  }
+
+  return result;
+}
+
 auto testInBox(byte_string_view cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
-  -> bool {
+-> bool {
   auto cmp = compareWithBox(byte_string{cur}, min, max, dimensions);
+
+  return std::all_of(cmp.begin(), cmp.end(), [](auto const& r) {
+    return r.flag == 0;
+  });
+}
+
+auto testInBoxBytes(byte_string_view cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
+-> bool {
+  auto cmp = compareWithBoxBytes(byte_string{cur}, min, max, dimensions);
 
   return std::all_of(cmp.begin(), cmp.end(), [](auto const& r) {
     return r.flag == 0;
@@ -353,6 +471,97 @@ update_dims:
   }
 
   return interleave(next_v);
+}
+
+auto getNextZValueBytes(byte_string const& cur, byte_string const& min, byte_string const& max, std::vector<CompareResult>& cmpResult)
+  -> std::optional<byte_string> {
+
+  auto result = cur;
+
+  auto const dims = cmpResult.size();
+
+  auto minOutstepIter = std::min_element(cmpResult.begin(), cmpResult.end(), [&](auto const& a, auto const& b) {
+    if (a.flag == 0) {
+      return false;
+    }
+    if (b.flag == 0) {
+      return true;
+    }
+    return a.outStep < b.outStep;
+  });
+  assert(minOutstepIter->flag != 0);
+  auto const d = std::distance(cmpResult.begin(), minOutstepIter);
+
+  std::size_t changeBP = dims * minOutstepIter->outStep + d;
+
+  if (minOutstepIter->flag > 0) {
+    while (changeBP != 0) {
+      --changeBP;
+      if (cur[changeBP] != 0xff_b) {
+        auto dim = changeBP % dims;
+        auto step = changeBP / dims;
+        if (cmpResult[dim].saveMax <= step) {
+          cmpResult[dim].saveMin = step;
+          cmpResult[dim].flag = 0;
+          goto update_dims;
+        }
+      }
+    }
+
+    return std::nullopt;
+  }
+
+update_dims:
+  result[changeBP] = std::byte(std::to_integer<uint8_t>(result[changeBP]) + 1);
+
+  auto min_trans = transpose_bytes(min, dims);
+  auto next_v = transpose_bytes(result, dims);
+
+  for (unsigned dim = 0; dim < dims; dim++) {
+    auto& cmpRes = cmpResult[dim];
+    if (cmpRes.flag >= 0) {
+      auto bp = dims * cmpRes.saveMin + dim;
+      if (changeBP >= bp) {
+        // “set all bits of dim with bit positions > changeBP to 0”
+        ByteReader br(next_v[dim].begin(), next_v[dim].end());
+        byte_string bw;
+        size_t i = 0;
+        while (auto bit = br.next()) {
+          if (i * dims + dim > changeBP) {
+            break;
+          }
+          bw.push_back(bit.value());
+          i++;
+        }
+        next_v[dim] = std::move(bw);
+      } else {
+        // “set all bits of dim with bit positions >  changeBP  to  the  minimum  of  the  query  box  in  this dim”
+        ByteReader br(next_v[dim].begin(), next_v[dim].end());
+        byte_string bw;
+        size_t i = 0;
+        while (auto bit = br.next()) {
+          if (i * dims + dim > changeBP) {
+            break;
+          }
+          bw.push_back(bit.value());
+          i++;
+        }
+        ByteReader br_min(min_trans[dim].begin(), min_trans[dim].end());
+        for (auto j = 0; j < i; ++j) {
+          br_min.next();
+        }
+        for (; auto bit = br_min.next(); ++i) {
+          bw.push_back(bit.value());
+        }
+        next_v[dim] = std::move(bw);
+      }
+    } else {
+      // load the minimum for that dimension
+      next_v[dim] = min_trans[dim];
+    }
+  }
+
+  return interleave_bytes(next_v);
 }
 
 template<typename T>

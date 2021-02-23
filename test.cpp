@@ -56,7 +56,7 @@ void fillRocksdb(std::shared_ptr<RocksDBHandle> const& rocks) {
     }
 
 
-    auto key = interleave(coords);
+    auto key = interleave_bytes(coords);
     if (i % 10000 == 9999) {
       std::cout << "wrote 10000 entries" << std::endl;
       std::cout << key << std::endl;
@@ -108,12 +108,12 @@ auto findAllInBox(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<byte_
 
     while (true) {
       auto key = viewFromSlice(iter->key());
-      if (!testInBox(key, min_s, max_s, 4)) {
+      if (!testInBoxBytes(key, min_s, max_s, 4)) {
         cur = key;
         break;
       }
 
-      auto value = transpose(byte_string{key}, 4);
+      auto value = transpose_bytes(byte_string{key}, 4);
 
       //std::cout << value[0] << " " << value[1] << " " << value[2] << " " << value[3] << std::endl;
       res.insert({from_byte_string_fixed_length<uint64_t>(value[0]),
@@ -123,9 +123,9 @@ auto findAllInBox(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<byte_
       iter->Next();
     }
 
-    auto cmp = compareWithBox(cur, min_s, max_s, 4);
+    auto cmp = compareWithBoxBytes(cur, min_s, max_s, 4);
 
-    auto next = getNextZValue(cur, min_s, max_s, cmp);
+    auto next = getNextZValueBytes(cur, min_s, max_s, cmp);
     if (!next) {
       break;
     }
@@ -140,8 +140,8 @@ auto findAllInBox(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<byte_
 auto findAllInBoxSlow(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<byte_string> const& min, std::vector<byte_string> const& max)
   -> std::unordered_set<point> {
 
-  auto min_s = interleave(min);
-  auto max_s = interleave(max);
+  auto min_s = interleave_bytes(min);
+  auto max_s = interleave_bytes(max);
   std::unordered_set<point> res;
 
   auto iter = std::unique_ptr<rocksdb::Iterator>{rocks->db->NewIterator(rocksdb::ReadOptions{})};
@@ -151,8 +151,8 @@ auto findAllInBoxSlow(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<b
       break;
     }
     auto key = viewFromSlice(iter->key());
-    if (testInBox(key, min_s, max_s, 4)) {
-      auto value = transpose(byte_string{key}, 4);
+    if (testInBoxBytes(key, min_s, max_s, 4)) {
+      auto value = transpose_bytes(byte_string{key}, 4);
       res.insert({from_byte_string_fixed_length<uint64_t>(value[0]),
                   from_byte_string_fixed_length<uint64_t>(value[1]),
                   from_byte_string_fixed_length<uint64_t>(value[2]),
@@ -213,9 +213,9 @@ int main(int argc, char* argv[]) {
       res_zkd = findAllInBox(db, min, max);
       auto end = std::chrono::steady_clock::now();
       std::cout << "done " <<  std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end - start).count() << "ms" << std::endl;
-      //for (auto const& p : res_zkd) {
-      //  std::cout << p << std::endl;
-      //}
+      for (auto const& p : res_zkd) {
+        std::cout << p << std::endl;
+      }
     }
     {
       std::cout << "starting linear search" << std::endl;
