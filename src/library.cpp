@@ -250,6 +250,15 @@ auto compareWithBox(byte_string const& cur, byte_string const& min, byte_string 
   return result;
 }
 
+auto testInBox(byte_string_view cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
+  -> bool {
+  auto cmp = compareWithBox(byte_string{cur}, min, max, dimensions);
+
+  return std::all_of(cmp.begin(), cmp.end(), [](auto const& r) {
+    return r.flag == 0;
+  });
+}
+
 auto getNextZValue(byte_string const& cur, byte_string const& min, byte_string const& max, std::vector<CompareResult>& cmpResult)
   -> std::optional<byte_string> {
 
@@ -379,22 +388,41 @@ template auto to_byte_string_fixed_length<unsigned long long>(unsigned long long
 template auto to_byte_string_fixed_length<uint32_t>(uint32_t) -> byte_string;
 template auto to_byte_string_fixed_length<int32_t>(int32_t) -> byte_string;
 
+
+template<typename T>
+auto from_byte_string_fixed_length(byte_string const& bs) -> T {
+  T result = 0;
+  static_assert(std::is_integral_v<T>);
+  if constexpr (std::is_unsigned_v<T>) {
+    for (size_t i = 0; i < sizeof(T); i++) {
+      result |= std::to_integer<uint64_t>(bs[i]) << (56 - 8 * i);
+    }
+  } else {
+    abort();
+  }
+
+  return result;
+}
+
+
+template auto from_byte_string_fixed_length<uint64_t>(byte_string const&) -> uint64_t;
+
 std::ostream& operator<<(std::ostream& ostream, byte_string const& string) {
-	return operator<<(ostream, byte_string_view{string});
+  return operator<<(ostream, byte_string_view{string});
 }
 
 std::ostream& operator<<(std::ostream& ostream, byte_string_view const& string) {
-	ostream << "[0x ";
-	bool first = true;
-	for (auto const& it : string) {
-		if (!first) {
-			ostream << " ";
-		}
-		first = false;
-		ostream << std::hex << std::setfill('0') << std::setw(2) << std::to_integer<unsigned>(it);
-	}
-	ostream << "]";
-	return ostream;
+  ostream << "[0x ";
+  bool first = true;
+  for (auto const& it : string) {
+    if (!first) {
+      ostream << " ";
+    }
+    first = false;
+    ostream << std::hex << std::setfill('0') << std::setw(2) << std::to_integer<unsigned>(it);
+  }
+  ostream << "]";
+  return ostream;
 }
 
 std::ostream& operator<<(std::ostream& ostream, CompareResult const& cr) {

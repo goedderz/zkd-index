@@ -32,13 +32,17 @@ struct CompareResult {
 std::ostream& operator<<(std::ostream& ostream, CompareResult const& string);
 
 auto compareWithBox(byte_string const& cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
-  -> std::vector<CompareResult>;
+-> std::vector<CompareResult>;
+auto testInBox(byte_string_view cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
+-> bool;
 
 auto getNextZValue(byte_string const& cur, byte_string const& min, byte_string const& max, std::vector<CompareResult>& cmpResult)
   -> std::optional<byte_string>;
 
 template<typename T>
 auto to_byte_string_fixed_length(T) -> byte_string;
+template<typename T>
+auto from_byte_string_fixed_length(byte_string const&) -> T;
 
 
 enum class Bit {
