@@ -212,20 +212,20 @@ int main(int argc, char* argv[]) {
       auto start = std::chrono::steady_clock::now();
       res_zkd = findAllInBox(db, min, max);
       auto end = std::chrono::steady_clock::now();
-      std::cout << "done " << (end - start).count() << std::endl;
-      for (auto const& p : res_zkd) {
-        std::cout << p << std::endl;
-      }
+      std::cout << "done " <<  std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end - start).count() << "ms" << std::endl;
+      //for (auto const& p : res_zkd) {
+      //  std::cout << p << std::endl;
+      //}
     }
     {
       std::cout << "starting linear search" << std::endl;
       auto start = std::chrono::steady_clock::now();
       res_linear = findAllInBoxSlow(db, min, max);
       auto end = std::chrono::steady_clock::now();
-      std::cout << "done " << (end - start).count() << std::endl;
-      for (auto const& p : res_linear) {
-        std::cout << p << std::endl;
-      }
+      std::cout << "done " << std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end - start).count() << "ms" << std::endl;
+      //for (auto const& p : res_linear) {
+      //  std::cout << p << std::endl;
+      //}
     }
 
     std::cout << "zkd found " << res_zkd.size() << ", linear found " << res_linear.size() << std::endl;
