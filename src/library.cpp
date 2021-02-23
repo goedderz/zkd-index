@@ -34,11 +34,8 @@ byte_string operator"" _bs(const char* const str, std::size_t len) {
 
   auto result = byte_string{};
 
-  // if the input isn't divisible by 8, calculate the offset in the first byte
-  auto bitIdx = (8 - normalizedInput.size() % 8) % 8;
-
   char const* p = normalizedInput.c_str();
-  for (; *p != '\0'; bitIdx = 0) {
+  for (auto bitIdx = 0; *p != '\0'; bitIdx = 0) {
     result += std::byte{0};
     for (; *p != '\0' && bitIdx < 8; ++bitIdx) {
       switch (*p) {
@@ -254,8 +251,12 @@ auto transpose_bytes(byte_string const& bs, std::size_t dimensions) -> std::vect
 
 auto compareWithBox(byte_string const& cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
   -> std::vector<CompareResult> {
-  // TODO Don't crash with illegal dimensions
-  assert(dimensions != 0);
+  if (dimensions == 0) {
+    auto msg = std::string{"dimensions argument to "};
+    msg += __func__;
+    msg += " must be greater than zero.";
+    throw std::invalid_argument{msg};
+  }
   std::vector<CompareResult> result;
   result.resize(dimensions);
 
@@ -592,7 +593,9 @@ auto to_byte_string_fixed_length(T v) -> byte_string {
 
 template auto to_byte_string_fixed_length<uint64_t>(uint64_t) -> byte_string;
 template auto to_byte_string_fixed_length<int64_t>(int64_t) -> byte_string;
+template auto to_byte_string_fixed_length<long>(long) -> byte_string;
 template auto to_byte_string_fixed_length<long long>(long long) -> byte_string;
+template auto to_byte_string_fixed_length<unsigned long>(unsigned long) -> byte_string;
 template auto to_byte_string_fixed_length<unsigned long long>(unsigned long long) -> byte_string;
 template auto to_byte_string_fixed_length<uint32_t>(uint32_t) -> byte_string;
 template auto to_byte_string_fixed_length<int32_t>(int32_t) -> byte_string;

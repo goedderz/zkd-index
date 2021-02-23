@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17)
-project(zkd_tree)
+project(zkd_index)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -36,18 +36,18 @@ add_library(my_gtest INTERFACE)
 target_link_libraries(my_gtest INTERFACE gtest)
 target_include_directories(my_gtest INTERFACE ${GTEST_PATH})
 
-add_library(zkd_tree src/library.cpp src/library.h)
-target_precompile_headers(zkd_tree PUBLIC src/library.h)
-target_include_directories(zkd_tree INTERFACE src/)
-#target_link_libraries(zkd_tree with_asan)
+add_library(zkd_index src/library.cpp src/library.h)
+target_precompile_headers(zkd_index PUBLIC src/library.h)
+target_include_directories(zkd_index INTERFACE src/)
+#target_link_libraries(zkd_index with_asan)
 
-add_executable(zkd_tree_test src/rocksdb-handle.cpp src/rocksdb-handle.h tests/zkd_test.cpp tests/conversion.cpp tests/main.cpp)
-target_link_libraries(zkd_tree_test zkd_tree)
-target_link_libraries(zkd_tree_test my_gtest)
+add_executable(zkd_index_test src/rocksdb-handle.cpp src/rocksdb-handle.h tests/zkd_test.cpp tests/conversion.cpp tests/main.cpp)
+target_link_libraries(zkd_index_test zkd_index)
+target_link_libraries(zkd_index_test my_gtest)
 
-target_link_libraries(zkd_tree_test my_rocksdb)
-#target_link_libraries(zkd_tree_test with_asan)
+target_link_libraries(zkd_index_test my_rocksdb)
+#target_link_libraries(zkd_index_test with_asan)
 
-add_executable(zkd_tree_tool test.cpp src/rocksdb-handle.cpp src/rocksdb-handle.h)
-target_link_libraries(zkd_tree_tool zkd_tree)
-target_link_libraries(zkd_tree_tool my_rocksdb)
+add_executable(zkd_index_tool test.cpp src/rocksdb-handle.cpp src/rocksdb-handle.h)
+target_link_libraries(zkd_index_tool zkd_index)
+target_link_libraries(zkd_index_tool my_rocksdb)
