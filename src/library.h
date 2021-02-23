@@ -23,10 +23,12 @@ auto interleave(std::vector<byte_string> const& vec) -> byte_string;
 auto transpose(byte_string const& bs, std::size_t dimensions) -> std::vector<byte_string>;
 
 struct CompareResult {
+  static constexpr auto max = std::numeric_limits<unsigned>::max();
+
   signed flag = 0;
-  unsigned outStep = std::numeric_limits<unsigned>::max();
-  unsigned saveMin = std::numeric_limits<unsigned>::max();
-  unsigned saveMax = std::numeric_limits<unsigned>::max();
+  unsigned outStep = CompareResult::max;
+  unsigned saveMin = CompareResult::max;
+  unsigned saveMax = CompareResult::max;
 };
 
 std::ostream& operator<<(std::ostream& ostream, CompareResult const& string);

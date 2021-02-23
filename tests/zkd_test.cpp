@@ -7,23 +7,6 @@
 #include "library.h"
 #include "rocksdb-handle.h"
 
-// static std::ostream &operator<<(std::ostream &os, byte_string const &bs) {
-//   assert(!bs.empty());
-//   BitReader br(bs.begin(), bs.end());
-//   while (auto bit = br.next()) {
-//     switch (bit.value()) {
-//       case Bit::ZERO:
-//         os << 0;
-//         break;
-//       case Bit::ONE:
-//         os << 1;
-//         break;
-//     }
-//   }
-//
-//   return os;
-// }
-
 static std::ostream& operator<<(std::ostream& os, std::vector<byte_string> const& bsvec) {
   os << "{";
   if (!bsvec.empty()) {
@@ -257,12 +240,12 @@ TEST(compareBox, testFigure41_3) {
 
   EXPECT_EQ(res[0].flag, 1);
   EXPECT_EQ(res[0].saveMin, 5);
-  EXPECT_EQ(res[0].saveMax, std::numeric_limits<decltype(res[0].saveMax)>::max());
+  EXPECT_EQ(res[0].saveMax, CompareResult::max);
   EXPECT_EQ(res[0].outStep, 6);
   EXPECT_EQ(res[1].flag, 0);
-  EXPECT_EQ(res[1].saveMin, std::numeric_limits<decltype(res[1].saveMin)>::max());
+  EXPECT_EQ(res[1].saveMin, CompareResult::max);
   EXPECT_EQ(res[1].saveMax, 5);
-  EXPECT_EQ(res[1].outStep, std::numeric_limits<decltype(res[1].outStep)>::max());
+  EXPECT_EQ(res[1].outStep, CompareResult::max);
 }
 
 #if 0

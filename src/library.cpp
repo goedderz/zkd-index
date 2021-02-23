@@ -198,8 +198,12 @@ fuckoff_cxx:
 
 auto compareWithBox(byte_string const& cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
   -> std::vector<CompareResult> {
-  // TODO Don't crash with illegal dimensions
-  assert(dimensions != 0);
+  if (dimensions == 0) {
+    auto msg = std::string{"dimensions argument to "};
+    msg += __func__;
+    msg += " must be greater than zero.";
+    throw std::invalid_argument{msg};
+  }
   std::vector<CompareResult> result;
   result.resize(dimensions);
 
@@ -383,7 +387,9 @@ auto to_byte_string_fixed_length(T v) -> byte_string {
 
 template auto to_byte_string_fixed_length<uint64_t>(uint64_t) -> byte_string;
 template auto to_byte_string_fixed_length<int64_t>(int64_t) -> byte_string;
+template auto to_byte_string_fixed_length<long>(long) -> byte_string;
 template auto to_byte_string_fixed_length<long long>(long long) -> byte_string;
+template auto to_byte_string_fixed_length<unsigned long>(unsigned long) -> byte_string;
 template auto to_byte_string_fixed_length<unsigned long long>(unsigned long long) -> byte_string;
 template auto to_byte_string_fixed_length<uint32_t>(uint32_t) -> byte_string;
 template auto to_byte_string_fixed_length<int32_t>(int32_t) -> byte_string;
