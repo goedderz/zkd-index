@@ -49,34 +49,26 @@ TEST(byteStringLiteral, bs) {
   EXPECT_THROW("0 2"_bs, std::invalid_argument);
   EXPECT_THROW("1 2"_bs, std::invalid_argument);
 
-  { // These currently throw, but we may want to change _bs later to always
-    // start with the most significant bit.
+  EXPECT_EQ(byte_string{std::byte{0x00}}, "0"_bs);
+  EXPECT_EQ(byte_string{std::byte{0x80}}, "1"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x00}, std::byte{0x00}}), "00000000'0"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x00}, std::byte{0x80}}), "00000000'1"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x00}, std::byte{0x80}}), "0'00000001"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x00}, std::byte{0x80}}), "0 00000001"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x00}, std::byte{0x80}}), "0 000 000 01"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x01}, std::byte{0x00}}), "00000001'0"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x01}, std::byte{0x00}}), "0'00000010"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x80}, std::byte{0x00}}), "1'00000000"_bs);
+  EXPECT_EQ((byte_string{std::byte{0xa8}, std::byte{0xa8}}), "10101000'101010"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x15}, std::byte{0x15}, std::byte{0}}), "00010101'00010101'0"_bs);
 
-    // EXPECT_EQ(byte_string{std::byte{0}}, "0"_bs);
-    // EXPECT_EQ(byte_string{std::byte{1}}, "1"_bs);
-    EXPECT_THROW("0"_bs, std::invalid_argument);
-    EXPECT_THROW("1"_bs, std::invalid_argument);
-    // EXPECT_EQ((byte_string{std::byte{0}, std::byte{0}}), "00000000 0"_bs);
-    // EXPECT_EQ((byte_string{std::byte{0}, std::byte{1}}), "0 00000001"_bs);
-    // EXPECT_EQ((byte_string{std::byte{0}, std::byte{2}}), "0 00000010"_bs);
-    // EXPECT_EQ((byte_string{std::byte{1}, std::byte{0}}), "1 00000000"_bs);
-    EXPECT_THROW("00000000 0"_bs, std::invalid_argument);
-    EXPECT_THROW("0 00000001"_bs, std::invalid_argument);
-    EXPECT_THROW("0 00000010"_bs, std::invalid_argument);
-    EXPECT_THROW("1 00000000"_bs, std::invalid_argument);
-    // EXPECT_EQ((byte_string{std::byte{42}, std::byte{42}}), "101010 00101010"_bs);
-    EXPECT_THROW("101010 00101010"_bs, std::invalid_argument);
-    //EXPECT_EQ((byte_string{std::byte{0}, std::byte{42}, std::byte{42}}), "0 00101010 00101010"_bs);
-    EXPECT_THROW("0 00101010 00101010"_bs, std::invalid_argument);
-  }
-
-  EXPECT_EQ(byte_string{std::byte{0}}, "00000000"_bs);
-  EXPECT_EQ((byte_string{std::byte{0}, std::byte{0}}), "00000000 00000000"_bs);
-  EXPECT_EQ((byte_string{std::byte{0}, std::byte{1}}), "00000000 00000001"_bs);
-  EXPECT_EQ((byte_string{std::byte{0}, std::byte{2}}), "00000000 00000010"_bs);
-  EXPECT_EQ((byte_string{std::byte{1}, std::byte{0}}), "00000001 00000000"_bs);
+  EXPECT_EQ(byte_string{std::byte{0x00}}, "00000000"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x00}, std::byte{0x00}}), "00000000 00000000"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x00}, std::byte{1}}), "00000000 00000001"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x00}, std::byte{2}}), "00000000 00000010"_bs);
+  EXPECT_EQ((byte_string{std::byte{1}, std::byte{0x00}}), "00000001 00000000"_bs);
   EXPECT_EQ((byte_string{std::byte{42}, std::byte{42}}), "00101010 00101010"_bs);
-  EXPECT_EQ((byte_string{std::byte{0}, std::byte{42}, std::byte{42}}), "00000000 00101010 00101010"_bs);
+  EXPECT_EQ((byte_string{std::byte{0x00}, std::byte{42}, std::byte{42}}), "00000000 00101010 00101010"_bs);
 }
 
 TEST(interleave, d0) {

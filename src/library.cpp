@@ -34,20 +34,8 @@ byte_string operator"" _bs(const char* const str, std::size_t len) {
 
   auto result = byte_string{};
 
-  if (0 != normalizedInput.size() % 8) {
-    // For now, let's not pad the bitstring with zeroes on either left or right
-    // to avoid ambiguities.
-    throw std::invalid_argument{"Bit count must be a multiple of 8"};
-  }
-
-  // if the input isn't divisible by 8, calculate the offset in the first byte
-  auto bitIdx = (8 - normalizedInput.size() % 8) % 8;
-  // TODO Since the exception above, this is always zero. Let's start with the
-  //      most significant bit in the future, and pad with zeroes on the right.
-  assert(bitIdx == 0);
-
   char const* p = normalizedInput.c_str();
-  for (; *p != '\0'; bitIdx = 0) {
+  for (auto bitIdx = 0; *p != '\0'; bitIdx = 0) {
     result += std::byte{0};
     for (; *p != '\0' && bitIdx < 8; ++bitIdx) {
       switch (*p) {
