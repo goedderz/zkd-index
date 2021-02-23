@@ -374,21 +374,27 @@ auto to_byte_string_fixed_length(T v) -> byte_string {
 
 template auto to_byte_string_fixed_length<uint64_t>(uint64_t) -> byte_string;
 template auto to_byte_string_fixed_length<int64_t>(int64_t) -> byte_string;
+template auto to_byte_string_fixed_length<long long>(long long) -> byte_string;
+template auto to_byte_string_fixed_length<unsigned long long>(unsigned long long) -> byte_string;
 template auto to_byte_string_fixed_length<uint32_t>(uint32_t) -> byte_string;
 template auto to_byte_string_fixed_length<int32_t>(int32_t) -> byte_string;
 
 std::ostream& operator<<(std::ostream& ostream, byte_string const& string) {
-  ostream << "[0x ";
-  bool first = true;
-  for (auto const& it : string) {
-    if (!first) {
-      ostream << " ";
-    }
-    first = false;
-    ostream << std::hex << std::setfill('0') << std::setw(2) << std::to_integer<unsigned>(it);
-  }
-  ostream << "]";
-  return ostream;
+	return operator<<(ostream, byte_string_view{string});
+}
+
+std::ostream& operator<<(std::ostream& ostream, byte_string_view const& string) {
+	ostream << "[0x ";
+	bool first = true;
+	for (auto const& it : string) {
+		if (!first) {
+			ostream << " ";
+		}
+		first = false;
+		ostream << std::hex << std::setfill('0') << std::setw(2) << std::to_integer<unsigned>(it);
+	}
+	ostream << "]";
+	return ostream;
 }
 
 std::ostream& operator<<(std::ostream& ostream, CompareResult const& cr) {

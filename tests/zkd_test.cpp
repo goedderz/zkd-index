@@ -303,7 +303,7 @@ TEST(rocksdb, convert_bytestring) {
   }
 }
 
-auto sliceFromString(byte_string const& str) -> rocksdb::Slice {
+static auto sliceFromString(byte_string const& str) -> rocksdb::Slice {
   return rocksdb::Slice(reinterpret_cast<char const*>(str.c_str()), str.size());
 }
 
