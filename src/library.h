@@ -13,8 +13,9 @@ static std::byte operator"" _b(unsigned long long b) {
   return std::byte{(unsigned char) b};
 }
 
-class byte_string : public std::basic_string<std::byte> {
+struct byte_string : public std::basic_string<std::byte> {
   using std::basic_string<std::byte>::basic_string;
+  using std::basic_string<std::byte>::operator=;
 };
 using byte_string_view = std::basic_string_view<std::byte>;
 
@@ -67,7 +68,10 @@ class BitReader {
   explicit BitReader(byte_string_view v) : BitReader(v.cbegin(), v.cend()) {}
   
   auto next() -> std::optional<Bit>;
+  auto next_or_zero() -> Bit { return next().value_or(Bit::ZERO); }
 
+  auto read_big_endian_bits(unsigned bits) -> uint64_t;
+  
  private:
   iterator _current;
   iterator _end;

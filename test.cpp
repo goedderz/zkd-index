@@ -16,7 +16,7 @@ static auto sliceFromString(byte_string const& str) -> rocksdb::Slice {
   return rocksdb::Slice(reinterpret_cast<char const*>(str.c_str()), str.size());
 }
 
-using point = std::array<uint64_t, 4>;
+using point = std::array<double, 4>;
 
 template<>
 struct std::hash<byte_string> {
@@ -25,12 +25,12 @@ struct std::hash<byte_string> {
   }
 };
 
-template<>
-struct std::hash<std::array<uint64_t, 4>> {
-  std::size_t operator()(std::array<uint64_t, 4> const& v) const noexcept {
+template<typename T>
+struct std::hash<std::array<T, 4>> {
+  std::size_t operator()(std::array<T, 4> const& v) const noexcept {
     std::size_t hash = 0;
     for (auto const& s : v) {
-      hash = 33 * hash + std::hash<uint64_t>()(s);
+      hash = 33 * hash + std::hash<T>()(s);
     }
     return hash;
   }
@@ -48,13 +48,13 @@ std::ostream& operator<<(std::ostream& os, point const& v) {
 void fillRocksdb(std::shared_ptr<RocksDBHandle> const& rocks) {
   std::random_device rd;  //Will be used to obtain a seed for the random number engine
   std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-  std::uniform_int_distribution<> distrib(0, 600);
+  std::uniform_real_distribution<> distrib(-100.0, 100.0);
 
   for (std::size_t i = 0; i < 1000000; i++) {
     std::vector<byte_string> coords;
 
     for (std::size_t j = 0; j < 4; j++) {
-      coords.push_back(to_byte_string_fixed_length<uint64_t>(distrib(gen)));
+      coords.push_back(to_byte_string_fixed_length<double>(distrib(gen)));
     }
 
 
@@ -120,10 +120,10 @@ auto findAllInBox(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<byte_
       auto value = transpose(byte_string{key}, 4);
 
       //std::cout << value[0] << " " << value[1] << " " << value[2] << " " << value[3] << std::endl;
-      res.insert({from_byte_string_fixed_length<uint64_t>(value[0]),
-                  from_byte_string_fixed_length<uint64_t>(value[1]),
-                  from_byte_string_fixed_length<uint64_t>(value[2]),
-                  from_byte_string_fixed_length<uint64_t>(value[3])});
+      res.insert({from_byte_string_fixed_length<double>(value[0]),
+          from_byte_string_fixed_length<double>(value[1]),
+                 from_byte_string_fixed_length<double>(value[2]),
+                 from_byte_string_fixed_length<double>(value[3])});
       iter->Next();
     }
 
@@ -157,13 +157,15 @@ auto findAllInBoxSlow(std::shared_ptr<RocksDBHandle> const& rocks, std::vector<b
     auto key = viewFromSlice(iter->key());
     if (testInBox(key, min_s, max_s, 4)) {
       auto value = transpose(byte_string{key}, 4);
-      res.insert({from_byte_string_fixed_length<uint64_t>(value[0]),
-                  from_byte_string_fixed_length<uint64_t>(value[1]),
-                  from_byte_string_fixed_length<uint64_t>(value[2]),
-                  from_byte_string_fixed_length<uint64_t>(value[3])});
+      res.insert({from_byte_string_fixed_length<double>(value[0]),
+          from_byte_string_fixed_length<double>(value[1]),
+                 from_byte_string_fixed_length<double>(value[2]),
+                 from_byte_string_fixed_length<double>(value[3])});
     }
     iter->Next();
   }
+
+
 
   return res;
 }
@@ -194,7 +196,7 @@ int main(int argc, char* argv[]) {
     {
       std::stringstream ss(argv[3]);
       for (size_t i = 0; i < 4; i++) {
-        uint64_t v;
+        double v;
         ss >> v;
         min.emplace_back(to_byte_string_fixed_length(v));
       }
@@ -202,7 +204,7 @@ int main(int argc, char* argv[]) {
     {
       std::stringstream ss(argv[4]);
       for (size_t i = 0; i < 4; i++) {
-        uint64_t v;
+        double v;
         ss >> v;
         max.emplace_back(to_byte_string_fixed_length(v));
       }

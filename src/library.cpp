@@ -87,6 +87,17 @@ auto zkd::BitReader::next() -> std::optional<zkd::Bit> {
   return bit;
 }
 
+auto zkd::BitReader::read_big_endian_bits(unsigned bits) -> uint64_t {
+    uint64_t result = 0;
+    for (size_t i = 0; i < bits; i++) {
+        uint64_t bit = 1ul << (bits - i - 1);
+        if (next_or_zero() == Bit::ONE) {
+            result |= bit;
+        }
+    }
+    return result;
+}
+
 zkd::ByteReader::ByteReader(iterator begin, iterator end)
   : _current(begin), _end(end) {}
 
@@ -414,7 +425,7 @@ template auto zkd::to_byte_string_fixed_length<int32_t>(int32_t) -> zkd::byte_st
 namespace {
     struct floating_point {
         bool positive;
-        uint32_t exp;
+        uint64_t exp;
         uint64_t base;
     };
     
@@ -427,7 +438,21 @@ namespace {
             positive = false;
             base = - base;
         }
+        
+        
+        std::cout << "base write is " << base << std::endl;
         return {positive, exp + (1u << 10) - 1, uint64_t((1ull << 52) * base)};
+    }
+    
+    auto construct_double(floating_point const& fp) -> double {
+        int exp = int(fp.exp) - (1u << 10) + 1;
+        double base = (double) fp.base / double(1ull << 52);
+        
+        if (!fp.positive) {
+            base = -base;
+        }
+        std::cout << "base read is " << base << std::endl;
+        return std::ldexp(base, exp);
     }
 }
 
@@ -442,6 +467,7 @@ auto zkd::to_byte_string_fixed_length<double>(double x) -> byte_string {
     bw.write_big_endian_bits(exp, 11);
     bw.write_big_endian_bits(base, 52);
     
+    std::cout << "base written as " << base << std::endl;
     return std::move(bw).str();
 }
 
@@ -464,6 +490,18 @@ auto zkd::from_byte_string_fixed_length(byte_string_view bs) -> T {
 
 
 template auto zkd::from_byte_string_fixed_length<uint64_t>(byte_string_view) -> uint64_t;
+
+template<>
+auto zkd::from_byte_string_fixed_length<double>(byte_string_view bs) -> double {
+    BitReader r(bs);
+    
+    bool isPositive = r.next_or_zero() == Bit::ONE;
+    
+    auto exp = r.read_big_endian_bits(11);
+    auto base = r.read_big_endian_bits(52);
+    std::cout << "base read as " << base << std::endl;
+    return construct_double({isPositive, exp, base});
+}
 
 std::ostream& zkd::operator<<(std::ostream& ostream, zkd::byte_string const& string) {
   return operator<<(ostream, byte_string_view{string});

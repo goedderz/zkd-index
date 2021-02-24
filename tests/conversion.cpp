@@ -94,3 +94,57 @@ TEST(byte_string_conversion, double_float_cmp) {
         EXPECT_EQ(a < b, a_bs < b_bs) << "byte string of " << a << " and " << b << " does not compare equally: " << a_bs << " " << b_bs;
     }
 }
+
+TEST(byte_string_conversion, bit_reader_test) {
+    auto s = "1110 10101"_bs;
+    
+    BitReader r(s);
+    auto v = r.read_big_endian_bits(4);
+    EXPECT_EQ(0b1110, v);
+    auto v2 = r.read_big_endian_bits(5);
+    EXPECT_EQ(0b10101, v2);
+}
+
+
+TEST(byte_string_conversion, bit_reader_test_different_sizes) {
+    auto s = "1"_bs;
+    
+    {
+        BitReader r(s);
+        auto v = r.read_big_endian_bits(1);
+        EXPECT_EQ(1, v);
+    }
+    {
+        BitReader r(s);
+        auto v = r.read_big_endian_bits(8);
+        EXPECT_EQ(1 << 7, v);
+    }
+    {
+        BitReader r(s);
+        auto v = r.read_big_endian_bits(16);
+        EXPECT_EQ(1ull << 15, v);
+    }
+    {
+        BitReader r(s);
+        auto v = r.read_big_endian_bits(32);
+        EXPECT_EQ(1ull << 31, v);
+    }
+    {
+        BitReader r(s);
+        auto v = r.read_big_endian_bits(64);
+        EXPECT_EQ(1ull << 63, v);
+    }
+}
+
+TEST(byte_string_conversion, double_from_byte_string) {
+    auto tests = {
+        0.0, 1.0, 10.0, -1.0, -0.001, 1000., -.001
+    };
+    
+    for (auto a : tests) {
+        auto a_bs = to_byte_string_fixed_length(a);
+        double b = from_byte_string_fixed_length<double>(a_bs);
+        
+        EXPECT_EQ(a, b) << "byte string of " << a << " is " << a_bs << " and was read as " << b;
+    }
+}
