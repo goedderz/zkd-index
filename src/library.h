@@ -23,9 +23,6 @@ std::ostream& operator<<(std::ostream& ostream, byte_string_view const& string);
 auto interleave(std::vector<byte_string> const& vec) -> byte_string;
 auto transpose(byte_string const& bs, std::size_t dimensions) -> std::vector<byte_string>;
 
-auto interleave_bytes(std::vector<byte_string> const& vec) -> byte_string;
-auto transpose_bytes(byte_string const& bs, std::size_t dimensions) -> std::vector<byte_string>;
-
 struct CompareResult {
   static constexpr auto max = std::numeric_limits<unsigned>::max();
 
@@ -45,14 +42,6 @@ auto testInBox(byte_string_view cur, byte_string const& min, byte_string const& 
 auto getNextZValue(byte_string const& cur, byte_string const& min, byte_string const& max, std::vector<CompareResult>& cmpResult)
 -> std::optional<byte_string>;
 
-auto compareWithBoxBytes(byte_string const& cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
-  -> std::vector<CompareResult>;
-auto testInBoxBytes(byte_string_view cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
-  -> bool;
-
-auto getNextZValueBytes(byte_string const& cur, byte_string const& min, byte_string const& max, std::vector<CompareResult>& cmpResult)
-  -> std::optional<byte_string>;
-
 template<typename T>
 auto to_byte_string_fixed_length(T) -> byte_string;
 template<typename T>
@@ -67,10 +56,12 @@ enum class Bit {
 
 class BitReader {
  public:
-  using iterator = typename byte_string::const_iterator;
+  using iterator = typename byte_string_view::const_iterator;
 
   explicit BitReader(iterator begin, iterator end);
-
+  explicit BitReader(byte_string const& str) : BitReader(byte_string_view{str}) {}
+  explicit BitReader(byte_string_view v) : BitReader(v.cbegin(), v.cend()) {}
+  
   auto next() -> std::optional<Bit>;
 
  private:

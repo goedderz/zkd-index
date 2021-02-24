@@ -80,6 +80,9 @@ TEST(byte_string_conversion, double_float_cmp) {
         std::pair{10.0, 1.2},
         std::pair{-10.0, 1.2},
         std::pair{1.0, 1.0},
+        std::pair{1000.0, 100000.0},
+        std::pair{-1000.0, 100000.0},
+        std::pair{.0001, .001},
     };
     
     for (auto &&[a, b] : tests) {

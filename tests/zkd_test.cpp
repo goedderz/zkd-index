@@ -112,18 +112,6 @@ TEST(interleave, d2_multi) {
   }
 }
 
-TEST(interleave_byte, d3_multi) {
-  auto res = interleave_bytes({"aaa"_bss, "bbb"_bss, "c"_bss});
-  ASSERT_EQ(res, "abcab\0ab\0"_bss);
-}
-
-TEST(transpose_bytes, d3_empty) {
-  auto res = transpose_bytes("abcabcab"_bss, 3);
-  EXPECT_EQ(res[0], "aaa"_bss);
-  EXPECT_EQ(res[1], "bbb"_bss);
-  EXPECT_EQ(res[2], "cc"_bss);
-}
-
 TEST(transpose, d3_empty) {
   auto res = transpose({}, 3);
   ASSERT_EQ(res, (std::vector<byte_string>{{}, {}, {}}));
