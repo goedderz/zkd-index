@@ -7,11 +7,15 @@
 #include <string>
 #include <vector>
 
+namespace zkd {
+
 static std::byte operator"" _b(unsigned long long b) {
   return std::byte{(unsigned char) b};
 }
 
-using byte_string = std::basic_string<std::byte>;
+class byte_string : public std::basic_string<std::byte> {
+  using std::basic_string<std::byte>::basic_string;
+};
 using byte_string_view = std::basic_string_view<std::byte>;
 
 byte_string operator"" _bs(const char* str, std::size_t len);
@@ -21,7 +25,7 @@ std::ostream& operator<<(std::ostream& ostream, byte_string const& string);
 std::ostream& operator<<(std::ostream& ostream, byte_string_view const& string);
 
 auto interleave(std::vector<byte_string> const& vec) -> byte_string;
-auto transpose(byte_string const& bs, std::size_t dimensions) -> std::vector<byte_string>;
+auto transpose(byte_string_view bs, std::size_t dimensions) -> std::vector<byte_string>;
 
 struct CompareResult {
   static constexpr auto max = std::numeric_limits<unsigned>::max();
@@ -34,18 +38,18 @@ struct CompareResult {
 
 std::ostream& operator<<(std::ostream& ostream, CompareResult const& string);
 
-auto compareWithBox(byte_string const& cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
--> std::vector<CompareResult>;
-auto testInBox(byte_string_view cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
--> bool;
+auto compareWithBox(byte_string_view cur, byte_string_view min, byte_string_view max, std::size_t dimensions)
+  -> std::vector<CompareResult>;
+auto testInBox(byte_string_view cur, byte_string_view min, byte_string_view max, std::size_t dimensions)
+  -> bool;
 
-auto getNextZValue(byte_string const& cur, byte_string const& min, byte_string const& max, std::vector<CompareResult>& cmpResult)
--> std::optional<byte_string>;
+auto getNextZValue(byte_string_view cur, byte_string_view min, byte_string_view max, std::vector<CompareResult>& cmpResult)
+  -> std::optional<byte_string>;
 
 template<typename T>
-auto to_byte_string_fixed_length(T) -> byte_string;
+auto to_byte_string_fixed_length(T) -> zkd::byte_string;
 template<typename T>
-auto from_byte_string_fixed_length(byte_string const&) -> T;
+auto from_byte_string_fixed_length(byte_string_view) -> T;
 template<>
 byte_string to_byte_string_fixed_length<double>(double x);
 
@@ -101,16 +105,16 @@ class BitWriter {
 
 
 struct RandomBitReader {
-  explicit RandomBitReader(byte_string const& ref);
+  explicit RandomBitReader(byte_string_view ref);
 
   auto getBit(unsigned index) -> Bit;
 
  private:
-  byte_string const& ref;
+  byte_string_view ref;
 };
 
 struct RandomBitManipulator {
-  RandomBitManipulator(byte_string& ref);
+  explicit RandomBitManipulator(byte_string& ref);
 
   auto getBit(unsigned index) -> Bit;
 
@@ -120,5 +124,6 @@ struct RandomBitManipulator {
   byte_string& ref;
 };
 
+} // namespace zkd
 
 #endif //ZKD_TREE_LIBRARY_H

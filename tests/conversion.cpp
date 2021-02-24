@@ -2,11 +2,13 @@
 
 #include "library.h"
 
+using namespace zkd;
+
 TEST(byte_string_conversion, uint64) {
   auto tests = {
-    std::pair{12ull, byte_string{0_b, 0_b, 0_b, 0_b, 0_b, 0_b, 0_b, 12_b}},
-    std::pair{0xAABBCCDDull, byte_string{0_b, 0_b, 0_b, 0_b, 0xAA_b, 0xBB_b, 0xCC_b, 0xDD_b}},
-    std::pair{0x0123456789ABCDEFull, byte_string{0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b}}};
+    std::pair{uint64_t{12}, byte_string{0_b, 0_b, 0_b, 0_b, 0_b, 0_b, 0_b, 12_b}},
+    std::pair{uint64_t{0xAABBCCDD}, byte_string{0_b, 0_b, 0_b, 0_b, 0xAA_b, 0xBB_b, 0xCC_b, 0xDD_b}},
+    std::pair{uint64_t{0x0123456789ABCDEF}, byte_string{0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b}}};
 
   for (auto &&[v, bs] : tests) {
     auto result = to_byte_string_fixed_length(v);
@@ -16,9 +18,9 @@ TEST(byte_string_conversion, uint64) {
 
 TEST(byte_string_conversion, uint64_compare) {
   auto tests = {
-    std::pair{12ul, 7ul},
-    std::pair{4567ul, 768735456ul},
-    std::pair{4567ul, 4567ul},
+    std::pair{uint64_t{12}, uint64_t{7}},
+    std::pair{uint64_t{4567}, uint64_t{768735456}},
+    std::pair{uint64_t{4567}, uint64_t{4567}},
   };
 
   for (auto &&[a, b] : tests) {
@@ -31,9 +33,9 @@ TEST(byte_string_conversion, uint64_compare) {
 
 TEST(byte_string_conversion, int64) {
   auto tests = {
-    std::pair{12ll, byte_string{0xff_b, 0_b, 0_b, 0_b, 0_b, 0_b, 0_b, 0_b, 12_b}},
-    std::pair{0xAABBCCDDll, byte_string{0xFF_b, 0_b, 0_b, 0_b, 0_b, 0xAA_b, 0xBB_b, 0xCC_b, 0xDD_b}},
-    std::pair{-0x0123456789ABCDEFll, byte_string{0x00_b, 0xFE_b, 0xDC_b, 0xBA_b, 0x98_b, 0x76_b, 0x54_b, 0x32_b, 0x11_b}}};
+    std::pair{int64_t{12}, byte_string{0xff_b, 0_b, 0_b, 0_b, 0_b, 0_b, 0_b, 0_b, 12_b}},
+    std::pair{int64_t{0xAABBCCDD}, byte_string{0xFF_b, 0_b, 0_b, 0_b, 0_b, 0xAA_b, 0xBB_b, 0xCC_b, 0xDD_b}},
+    std::pair{int64_t{-0x0123456789ABCDEF}, byte_string{0x00_b, 0xFE_b, 0xDC_b, 0xBA_b, 0x98_b, 0x76_b, 0x54_b, 0x32_b, 0x11_b}}};
 
   for (auto &&[v, bs] : tests) {
     auto result = to_byte_string_fixed_length(v);
@@ -43,13 +45,13 @@ TEST(byte_string_conversion, int64) {
 
 TEST(byte_string_conversion, int64_compare) {
   auto tests = {
-    std::pair{12ll, 453ll},
-    std::pair{-12ll, 453ll},
-    std::pair{-1458792ll, 453ll},
-    std::pair{17819835131ll, -894564ll},
-    std::pair{-12ll, -8ll},
-    std::pair{-5646872ll, -5985646871ll},
-    std::pair{-5985646871ll, -5985646871ll},
+    std::pair{int64_t{12}, int64_t{453}},
+    std::pair{int64_t{-12}, int64_t{453}},
+    std::pair{int64_t{-1458792}, int64_t{453}},
+    std::pair{int64_t{17819835131}, int64_t{-894564}},
+    std::pair{int64_t{-12}, int64_t{-8}},
+    std::pair{int64_t{-5646872}, int64_t{-5985646871}},
+    std::pair{int64_t{-5985646871}, int64_t{-5985646871}},
   };
 
   for (auto &&[a, b] : tests) {

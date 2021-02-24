@@ -7,7 +7,11 @@
 #include "library.h"
 #include "rocksdb-handle.h"
 
-static std::ostream& operator<<(std::ostream& os, std::vector<byte_string> const& bsvec) {
+using namespace zkd;
+
+namespace testing {
+
+static std::ostream& operator<<(std::ostream& os, std::vector<zkd::byte_string> const& bsvec) {
   os << "{";
   if (!bsvec.empty()) {
     auto it = bsvec.begin();
@@ -22,7 +26,7 @@ static std::ostream& operator<<(std::ostream& os, std::vector<byte_string> const
   return os;
 }
 
-static std::ostream& operator<<(std::ostream& os, std::vector<CompareResult> const& cmpResult) {
+static std::ostream& operator<<(std::ostream& os, std::vector<zkd::CompareResult> const& cmpResult) {
   os << "{";
   if (!cmpResult.empty()) {
     auto it = cmpResult.begin();
@@ -35,6 +39,8 @@ static std::ostream& operator<<(std::ostream& os, std::vector<CompareResult> con
   os << "}";
 
   return os;
+}
+
 }
 
 TEST(byteStringLiteral, bs) {
@@ -305,7 +311,7 @@ TEST(getNextZValue, testFigure41) {
   // upper point of the box: (4, 5)
   auto const pMax = interleave(std::vector{"00000100"_bs, "00000101"_bs});
 
-  auto test = [&pMin, &pMax](std::vector<byte_string> const& inputCoords, std::optional<std::vector<byte_string>> const& expectedCoords) {
+  auto test = [&pMin, &pMax](std::vector<byte_string> const& inputCoords, std::optional<std::vector<zkd::byte_string>> const& expectedCoords) {
     auto const input = interleave(inputCoords);
     auto const expected = std::invoke([&]() -> std::optional<byte_string> {
       if (expectedCoords.has_value()) {
@@ -317,8 +323,8 @@ TEST(getNextZValue, testFigure41) {
     auto cmpResult = compareWithBox(input, pMin, pMax, 2);
     // input should be outside the box:
     auto sstr = std::stringstream{};
-    if (expectedCoords.has_value()) {
-      sstr << expectedCoords.value();
+    if (expectedCoords.has_value()) {auto t = expectedCoords.value();
+      sstr << t;
     } else {
       sstr << "n/a";
     }

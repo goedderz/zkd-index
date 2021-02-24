@@ -8,8 +8,9 @@
 #include <optional>
 #include <cmath>
 
+using namespace zkd;
 
-byte_string operator"" _bs(const char* const str, std::size_t len) {
+zkd::byte_string operator"" _bs(const char* const str, std::size_t len) {
   using namespace std::string_literals;
 
   std::string normalizedInput{};
@@ -63,14 +64,14 @@ byte_string operator"" _bs(const char* const str, std::size_t len) {
 }
 
 
-byte_string operator"" _bss(const char* str, std::size_t len) {
+zkd::byte_string operator"" _bss(const char* str, std::size_t len) {
   return byte_string{ reinterpret_cast<const std::byte*>(str), len};
 }
 
-BitReader::BitReader(BitReader::iterator begin, BitReader::iterator end)
+zkd::BitReader::BitReader(zkd::BitReader::iterator begin, zkd::BitReader::iterator end)
   : _current(begin), _end(end) {}
 
-auto BitReader::next() -> std::optional<Bit> {
+auto zkd::BitReader::next() -> std::optional<zkd::Bit> {
   if (_nibble >= 8) {
     if (_current == _end) {
       return std::nullopt;
@@ -86,18 +87,17 @@ auto BitReader::next() -> std::optional<Bit> {
   return bit;
 }
 
-ByteReader::ByteReader(iterator begin, iterator end)
+zkd::ByteReader::ByteReader(iterator begin, iterator end)
   : _current(begin), _end(end) {}
 
-auto ByteReader::next() -> std::optional<std::byte> {
-
+auto zkd::ByteReader::next() -> std::optional<std::byte> {
   if (_current == _end) {
     return std::nullopt;
   }
   return *(_current++);
 }
 
-void BitWriter::append(Bit bit) {
+void zkd::BitWriter::append(Bit bit) {
     if (bit == Bit::ONE) {
         _value |= std::byte{1} << (7u - _nibble);
     }
@@ -109,14 +109,14 @@ void BitWriter::append(Bit bit) {
     }
 }
 
-void BitWriter::write_big_endian_bits(uint64_t v, unsigned bits) {
+void zkd::BitWriter::write_big_endian_bits(uint64_t v, unsigned bits) {
     for (size_t i = 0; i < bits; i++) {
         auto b = (v & (1 << (bits - i - 1))) == 0 ? Bit::ZERO : Bit::ONE;
         append(b);
     }
 }
 
-auto BitWriter::str() && -> byte_string {
+auto zkd::BitWriter::str() && -> zkd::byte_string {
   if (_nibble > 0) {
     _buffer.push_back(_value);
   }
@@ -125,13 +125,13 @@ auto BitWriter::str() && -> byte_string {
   return std::move(_buffer);
 }
 
-void BitWriter::reserve(std::size_t amount) {
+void zkd::BitWriter::reserve(std::size_t amount) {
   _buffer.reserve(amount);
 }
 
-RandomBitReader::RandomBitReader(const byte_string& ref) : ref(ref) {}
+zkd::RandomBitReader::RandomBitReader(byte_string_view ref) : ref(ref) {}
 
-auto RandomBitReader::getBit(unsigned int index) -> Bit {
+auto zkd::RandomBitReader::getBit(unsigned int index) -> Bit {
   auto byte = index / 8;
   auto nibble = index % 8;
 
@@ -143,9 +143,9 @@ auto RandomBitReader::getBit(unsigned int index) -> Bit {
   return b != 0_b ? Bit::ONE : Bit::ZERO;
 }
 
-RandomBitManipulator::RandomBitManipulator(byte_string& ref) : ref(ref) {}
+zkd::RandomBitManipulator::RandomBitManipulator(byte_string& ref) : ref(ref) {}
 
-auto RandomBitManipulator::getBit(unsigned int index) -> Bit {
+auto zkd::RandomBitManipulator::getBit(unsigned int index) -> Bit {
   auto byte = index / 8;
   auto nibble = index % 8;
 
@@ -157,7 +157,7 @@ auto RandomBitManipulator::getBit(unsigned int index) -> Bit {
   return b != 0_b ? Bit::ONE : Bit::ZERO;
 }
 
-auto RandomBitManipulator::setBit(unsigned int index, Bit value) -> void {
+auto zkd::RandomBitManipulator::setBit(unsigned int index, Bit value) -> void {
   auto byte = index / 8;
   auto nibble = index % 8;
 
@@ -168,7 +168,7 @@ auto RandomBitManipulator::setBit(unsigned int index, Bit value) -> void {
   ref[byte] = (ref[byte] & ~bit) | (value == Bit::ONE ? bit : 0_b);
 }
 
-auto interleave(std::vector<byte_string> const& vec) -> byte_string {
+auto zkd::interleave(std::vector<zkd::byte_string> const& vec) -> zkd::byte_string {
   std::size_t max_size = 0;
   std::vector<BitReader> reader;
   reader.reserve(vec.size());
@@ -193,7 +193,7 @@ auto interleave(std::vector<byte_string> const& vec) -> byte_string {
   return std::move(bitWriter).str();
 }
 
-auto transpose(byte_string const& bs, std::size_t dimensions) -> std::vector<byte_string> {
+auto zkd::transpose(byte_string_view bs, std::size_t dimensions) -> std::vector<zkd::byte_string> {
   assert(dimensions > 0);
   BitReader reader(bs);
   std::vector<BitWriter> writer;
@@ -210,14 +210,14 @@ auto transpose(byte_string const& bs, std::size_t dimensions) -> std::vector<byt
   }
 fuckoff_cxx:
 
-  std::vector<byte_string> result;
+  std::vector<zkd::byte_string> result;
   std::transform(writer.begin(), writer.end(), std::back_inserter(result), [](auto& bs) {
     return std::move(bs).str();
   });
   return result;
 }
 
-auto compareWithBox(byte_string const& cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
+auto zkd::compareWithBox(byte_string_view cur, byte_string_view min, byte_string_view max, std::size_t dimensions)
   -> std::vector<CompareResult> {
   if (dimensions == 0) {
     auto msg = std::string{"dimensions argument to "};
@@ -275,19 +275,19 @@ auto compareWithBox(byte_string const& cur, byte_string const& min, byte_string 
   return result;
 }
 
-auto testInBox(byte_string_view cur, byte_string const& min, byte_string const& max, std::size_t dimensions)
--> bool {
-  auto cmp = compareWithBox(byte_string{cur}, min, max, dimensions);
+auto zkd::testInBox(byte_string_view cur, byte_string_view min, byte_string_view max, std::size_t dimensions)
+  -> bool {
+  auto cmp = compareWithBox(cur, min, max, dimensions);
 
   return std::all_of(cmp.begin(), cmp.end(), [](auto const& r) {
     return r.flag == 0;
   });
 }
 
-auto getNextZValue(byte_string const& cur, byte_string const& min, byte_string const& max, std::vector<CompareResult>& cmpResult)
+auto zkd::getNextZValue(byte_string_view cur, byte_string_view min, byte_string_view max, std::vector<CompareResult>& cmpResult)
   -> std::optional<byte_string> {
 
-  auto result = cur;
+  auto result = byte_string{cur};
 
   auto const dims = cmpResult.size();
 
@@ -381,7 +381,7 @@ update_dims:
 }
 
 template<typename T>
-auto to_byte_string_fixed_length(T v) -> byte_string {
+auto zkd::to_byte_string_fixed_length(T v) -> zkd::byte_string {
   byte_string result;
   static_assert(std::is_integral_v<T>);
   if constexpr (std::is_unsigned_v<T>) {
@@ -406,14 +406,10 @@ auto to_byte_string_fixed_length(T v) -> byte_string {
   return result;
 }
 
-template auto to_byte_string_fixed_length<uint64_t>(uint64_t) -> byte_string;
-template auto to_byte_string_fixed_length<int64_t>(int64_t) -> byte_string;
-//template auto to_byte_string_fixed_length<long>(long) -> byte_string;
-template auto to_byte_string_fixed_length<long long>(long long) -> byte_string;
-//template auto to_byte_string_fixed_length<unsigned long>(unsigned long) -> byte_string;
-template auto to_byte_string_fixed_length<unsigned long long>(unsigned long long) -> byte_string;
-template auto to_byte_string_fixed_length<uint32_t>(uint32_t) -> byte_string;
-template auto to_byte_string_fixed_length<int32_t>(int32_t) -> byte_string;
+template auto zkd::to_byte_string_fixed_length<uint64_t>(uint64_t) -> zkd::byte_string;
+template auto zkd::to_byte_string_fixed_length<int64_t>(int64_t) -> zkd::byte_string;
+template auto zkd::to_byte_string_fixed_length<uint32_t>(uint32_t) -> zkd::byte_string;
+template auto zkd::to_byte_string_fixed_length<int32_t>(int32_t) -> zkd::byte_string;
 
 namespace {
     struct floating_point {
@@ -436,7 +432,7 @@ namespace {
 }
 
 template<>
-auto to_byte_string_fixed_length<double>(double x) -> byte_string {
+auto zkd::to_byte_string_fixed_length<double>(double x) -> byte_string {
     
     auto [p, exp, base] = destruct_double(x);
     
@@ -452,7 +448,7 @@ auto to_byte_string_fixed_length<double>(double x) -> byte_string {
 
 
 template<typename T>
-auto from_byte_string_fixed_length(byte_string const& bs) -> T {
+auto zkd::from_byte_string_fixed_length(byte_string_view bs) -> T {
   T result = 0;
   static_assert(std::is_integral_v<T>);
   if constexpr (std::is_unsigned_v<T>) {
@@ -467,9 +463,9 @@ auto from_byte_string_fixed_length(byte_string const& bs) -> T {
 }
 
 
-template auto from_byte_string_fixed_length<uint64_t>(byte_string const&) -> uint64_t;
+template auto zkd::from_byte_string_fixed_length<uint64_t>(byte_string_view) -> uint64_t;
 
-std::ostream& operator<<(std::ostream& ostream, byte_string const& string) {
+std::ostream& operator<<(std::ostream& ostream, zkd::byte_string const& string) {
   return operator<<(ostream, byte_string_view{string});
 }
 
@@ -487,7 +483,7 @@ std::ostream& operator<<(std::ostream& ostream, byte_string_view const& string) 
   return ostream;
 }
 
-std::ostream& operator<<(std::ostream& ostream, CompareResult const& cr) {
+std::ostream& operator<<(std::ostream& ostream, zkd::CompareResult const& cr) {
   ostream << "CR{";
   ostream << "flag=" << cr.flag;
   ostream << ", saveMin=" << cr.saveMin;
