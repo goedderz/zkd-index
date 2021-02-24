@@ -9,7 +9,7 @@
 
 using namespace zkd;
 
-namespace testing {
+namespace zkd {
 
 static std::ostream& operator<<(std::ostream& os, std::vector<zkd::byte_string> const& bsvec) {
   os << "{";
@@ -323,8 +323,8 @@ TEST(getNextZValue, testFigure41) {
     auto cmpResult = compareWithBox(input, pMin, pMax, 2);
     // input should be outside the box:
     auto sstr = std::stringstream{};
-    if (expectedCoords.has_value()) {auto t = expectedCoords.value();
-      sstr << t;
+    if (expectedCoords.has_value()) {
+      sstr << expectedCoords.value();
     } else {
       sstr << "n/a";
     }

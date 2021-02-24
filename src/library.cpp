@@ -10,7 +10,7 @@
 
 using namespace zkd;
 
-zkd::byte_string operator"" _bs(const char* const str, std::size_t len) {
+zkd::byte_string zkd::operator"" _bs(const char* const str, std::size_t len) {
   using namespace std::string_literals;
 
   std::string normalizedInput{};
@@ -64,7 +64,7 @@ zkd::byte_string operator"" _bs(const char* const str, std::size_t len) {
 }
 
 
-zkd::byte_string operator"" _bss(const char* str, std::size_t len) {
+zkd::byte_string zkd::operator"" _bss(const char* str, std::size_t len) {
   return byte_string{ reinterpret_cast<const std::byte*>(str), len};
 }
 
@@ -465,11 +465,11 @@ auto zkd::from_byte_string_fixed_length(byte_string_view bs) -> T {
 
 template auto zkd::from_byte_string_fixed_length<uint64_t>(byte_string_view) -> uint64_t;
 
-std::ostream& operator<<(std::ostream& ostream, zkd::byte_string const& string) {
+std::ostream& zkd::operator<<(std::ostream& ostream, zkd::byte_string const& string) {
   return operator<<(ostream, byte_string_view{string});
 }
 
-std::ostream& operator<<(std::ostream& ostream, byte_string_view const& string) {
+std::ostream& zkd::operator<<(std::ostream& ostream, byte_string_view string) {
   ostream << "[0x ";
   bool first = true;
   for (auto const& it : string) {
@@ -483,7 +483,7 @@ std::ostream& operator<<(std::ostream& ostream, byte_string_view const& string) 
   return ostream;
 }
 
-std::ostream& operator<<(std::ostream& ostream, zkd::CompareResult const& cr) {
+std::ostream& zkd::operator<<(std::ostream& ostream, zkd::CompareResult const& cr) {
   ostream << "CR{";
   ostream << "flag=" << cr.flag;
   ostream << ", saveMin=" << cr.saveMin;

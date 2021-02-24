@@ -22,7 +22,7 @@ byte_string operator"" _bs(const char* str, std::size_t len);
 byte_string operator"" _bss(const char* str, std::size_t len);
 
 std::ostream& operator<<(std::ostream& ostream, byte_string const& string);
-std::ostream& operator<<(std::ostream& ostream, byte_string_view const& string);
+std::ostream& operator<<(std::ostream& ostream, byte_string_view string);
 
 auto interleave(std::vector<byte_string> const& vec) -> byte_string;
 auto transpose(byte_string_view bs, std::size_t dimensions) -> std::vector<byte_string>;
