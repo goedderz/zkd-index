@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <optional>
+#include <cmath>
 
 
 byte_string operator"" _bs(const char* const str, std::size_t len) {
@@ -97,15 +98,22 @@ auto ByteReader::next() -> std::optional<std::byte> {
 }
 
 void BitWriter::append(Bit bit) {
-  if (bit == Bit::ONE) {
-    _value |= std::byte{1} << (7u - _nibble);
-  }
-  _nibble += 1;
-  if (_nibble == 8) {
-    _buffer.push_back(_value);
-    _value = std::byte{0};
-    _nibble = 0;
-  }
+    if (bit == Bit::ONE) {
+        _value |= std::byte{1} << (7u - _nibble);
+    }
+    _nibble += 1;
+    if (_nibble == 8) {
+        _buffer.push_back(_value);
+        _value = std::byte{0};
+        _nibble = 0;
+    }
+}
+
+void BitWriter::write_big_endian_bits(uint64_t v, unsigned bits) {
+    for (size_t i = 0; i < bits; i++) {
+        auto b = (v & (1 << (bits - i - 1))) == 0 ? Bit::ZERO : Bit::ONE;
+        append(b);
+    }
 }
 
 auto BitWriter::str() && -> byte_string {
@@ -593,12 +601,49 @@ auto to_byte_string_fixed_length(T v) -> byte_string {
 
 template auto to_byte_string_fixed_length<uint64_t>(uint64_t) -> byte_string;
 template auto to_byte_string_fixed_length<int64_t>(int64_t) -> byte_string;
-template auto to_byte_string_fixed_length<long>(long) -> byte_string;
+//template auto to_byte_string_fixed_length<long>(long) -> byte_string;
 template auto to_byte_string_fixed_length<long long>(long long) -> byte_string;
-template auto to_byte_string_fixed_length<unsigned long>(unsigned long) -> byte_string;
+//template auto to_byte_string_fixed_length<unsigned long>(unsigned long) -> byte_string;
 template auto to_byte_string_fixed_length<unsigned long long>(unsigned long long) -> byte_string;
 template auto to_byte_string_fixed_length<uint32_t>(uint32_t) -> byte_string;
 template auto to_byte_string_fixed_length<int32_t>(int32_t) -> byte_string;
+
+namespace {
+    struct floating_point {
+        bool positive;
+        uint32_t exp;
+        uint64_t base;
+    };
+    
+    
+    auto destruct_double(double x) -> floating_point {
+        bool positive = true;
+        int exp;
+        double base = frexp(x, &exp);
+        if (base < 0) {
+            positive = false;
+            base = - base;
+        }
+        return {positive, exp + (1u << 10) - 1, uint64_t((1ull << 52) * base)};
+    }
+}
+
+template<>
+auto to_byte_string_fixed_length<double>(double x) -> byte_string {
+    
+    auto [p, exp, base] = destruct_double(x);
+    
+    std::cout << "destructing " << x << " as P = " << p << " exp = " << exp << " base = " << base << std::endl;
+    
+    BitWriter bw;
+    bw.append(p ? Bit::ONE : Bit::ZERO);
+    
+    bw.write_big_endian_bits(exp, 11);
+    bw.write_big_endian_bits(base, 52);
+    
+    return std::move(bw).str();
+}
+
 
 
 template<typename T>

@@ -59,3 +59,33 @@ TEST(byte_string_conversion, int64_compare) {
     EXPECT_EQ(a < b, a_bs < b_bs) << "byte string of " << a << " and " << b << " does not compare equally: " << a_bs << " " << b_bs;
   }
 }
+
+
+TEST(byte_string_conversion, double_float) {
+    auto tests = {
+        std::pair{0.0, byte_string{0b10111111_b, 0b11110000_b, 0_b, 0_b, 0_b, 0_b, 0_b, 0_b}}
+    };
+        
+        for (auto &&[v, bs] : tests) {
+            auto result = to_byte_string_fixed_length(v);
+            EXPECT_EQ(result, bs);
+        }
+}
+
+TEST(byte_string_conversion, double_float_cmp) {
+    auto tests = {
+        std::pair{1.0, 0.0},
+        std::pair{-1.0, 1.0},
+        std::pair{1.0, 1.2},
+        std::pair{10.0, 1.2},
+        std::pair{-10.0, 1.2},
+        std::pair{1.0, 1.0},
+    };
+    
+    for (auto &&[a, b] : tests) {
+        auto a_bs = to_byte_string_fixed_length(a);
+        auto b_bs = to_byte_string_fixed_length(b);
+        
+        EXPECT_EQ(a < b, a_bs < b_bs) << "byte string of " << a << " and " << b << " does not compare equally: " << a_bs << " " << b_bs;
+    }
+}

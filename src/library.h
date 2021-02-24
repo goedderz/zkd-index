@@ -57,7 +57,8 @@ template<typename T>
 auto to_byte_string_fixed_length(T) -> byte_string;
 template<typename T>
 auto from_byte_string_fixed_length(byte_string const&) -> T;
-
+template<>
+byte_string to_byte_string_fixed_length<double>(double x);
 
 enum class Bit {
   ZERO = 0,
@@ -95,6 +96,7 @@ class ByteReader {
 class BitWriter {
  public:
   void append(Bit bit);
+  void write_big_endian_bits(uint64_t, unsigned bits);
 
   auto str() && -> byte_string;
 
