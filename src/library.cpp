@@ -122,7 +122,7 @@ void zkd::BitWriter::append(Bit bit) {
 
 void zkd::BitWriter::write_big_endian_bits(uint64_t v, unsigned bits) {
     for (size_t i = 0; i < bits; i++) {
-        auto b = (v & (1 << (bits - i - 1))) == 0 ? Bit::ZERO : Bit::ONE;
+        auto b = (v & (1ul << (bits - i - 1))) == 0 ? Bit::ZERO : Bit::ONE;
         append(b);
     }
 }
@@ -439,9 +439,8 @@ namespace {
             base = - base;
         }
         
-        
-        std::cout << "base write is " << base << std::endl;
-        return {positive, exp + (1u << 10) - 1, uint64_t((1ull << 52) * base)};
+        auto int_base = uint64_t((1ull << 52) * base);
+        return {positive, exp + (1u << 10) - 1, int_base};
     }
     
     auto construct_double(floating_point const& fp) -> double {
@@ -451,7 +450,6 @@ namespace {
         if (!fp.positive) {
             base = -base;
         }
-        std::cout << "base read is " << base << std::endl;
         return std::ldexp(base, exp);
     }
 }
@@ -466,8 +464,7 @@ auto zkd::to_byte_string_fixed_length<double>(double x) -> byte_string {
     
     bw.write_big_endian_bits(exp, 11);
     bw.write_big_endian_bits(base, 52);
-    
-    std::cout << "base written as " << base << std::endl;
+
     return std::move(bw).str();
 }
 
@@ -499,7 +496,6 @@ auto zkd::from_byte_string_fixed_length<double>(byte_string_view bs) -> double {
     
     auto exp = r.read_big_endian_bits(11);
     auto base = r.read_big_endian_bits(52);
-    std::cout << "base read as " << base << std::endl;
     return construct_double({isPositive, exp, base});
 }
 
