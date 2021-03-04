@@ -427,13 +427,19 @@ namespace {
         bool positive;
         uint64_t exp;
         uint64_t base;
+
+
     };
-    
+
+std::ostream& operator<<(std::ostream& os, struct floating_point const& fp) {
+  std::cout << (fp.positive ? "p" : "n") << fp.exp << "E" << fp.base;
+  return os;
+}
     
     auto destruct_double(double x) -> floating_point {
         bool positive = true;
         int exp;
-        double base = frexp(x, &exp);
+        long double base = frexp(x, &exp);
         if (base < 0) {
             positive = false;
             base = - base;
@@ -444,8 +450,8 @@ namespace {
     }
     
     auto construct_double(floating_point const& fp) -> double {
-        int exp = int(fp.exp) - (1u << 10) + 1;
-        double base = (double) fp.base / double(1ull << 52);
+        uint64_t exp = int(fp.exp) - (1u << 10) + 1;
+        double base = (fp.base / double(1ull << 52));
         
         if (!fp.positive) {
             base = -base;
@@ -456,18 +462,21 @@ namespace {
 
 template<>
 auto zkd::to_byte_string_fixed_length<double>(double x) -> byte_string {
-    
     auto [p, exp, base] = destruct_double(x);
     
     BitWriter bw;
     bw.append(p ? Bit::ONE : Bit::ZERO);
-    
+
+    if (!p) {
+      exp ^= (1ul << 11) - 1;
+      base ^= (1ul << 52) - 1;
+    }
+
     bw.write_big_endian_bits(exp, 11);
     bw.write_big_endian_bits(base, 52);
 
     return std::move(bw).str();
 }
-
 
 
 template<typename T>
@@ -496,6 +505,11 @@ auto zkd::from_byte_string_fixed_length<double>(byte_string_view bs) -> double {
     
     auto exp = r.read_big_endian_bits(11);
     auto base = r.read_big_endian_bits(52);
+    if (!isPositive) {
+      exp ^= (1ul << 11) - 1;
+      base ^= (1ul << 52) - 1;
+    }
+
     return construct_double({isPositive, exp, base});
 }
 

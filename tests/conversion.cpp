@@ -85,6 +85,7 @@ TEST(byte_string_conversion, double_float_cmp) {
         std::pair{1000.0, 100000.0},
         std::pair{-1000.0, 100000.0},
         std::pair{.0001, .001},
+        std::pair{-5., -10.},
     };
     
     for (auto &&[a, b] : tests) {
@@ -138,12 +139,12 @@ TEST(byte_string_conversion, bit_reader_test_different_sizes) {
 
 TEST(byte_string_conversion, double_from_byte_string) {
     auto tests = {
-        0.0, 1.0, 10.0, -1.0, -0.001, 1000., -.001
+        0.0, 1.0, 10.0, -1.0, -0.001, 1000., -.00001, -100.0, 4.e-12, -5e+15
     };
     
     for (auto a : tests) {
         auto a_bs = to_byte_string_fixed_length(a);
-        double b = from_byte_string_fixed_length<double>(a_bs);
+        auto b = from_byte_string_fixed_length<double>(a_bs);
         
         EXPECT_EQ(a, b) << "byte string of " << a << " is " << a_bs << " and was read as " << b;
     }
